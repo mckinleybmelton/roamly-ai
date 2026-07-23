@@ -20,6 +20,7 @@
 		7F46AA2B406C9F200B2ADFFC /* WikipediaFactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D669B85C57A135BA56BEE7 /* WikipediaFactsService.swift */; };
 		E52EA0E34BF7CAB0203AE79F /* GeoFactsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B5AC43AC3241B7E91D7194 /* GeoFactsStore.swift */; };
 		7580A3D31283DF78091B0B89 /* DestinationSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3D8648C832CF40962FAE49 /* DestinationSetupView.swift */; };
+		D4FAAB5BDA4CF48E92A99C93 /* FoundationModelBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B569CC4EA7268AB374DC58FC /* FoundationModelBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -38,6 +39,7 @@
 		C8D669B85C57A135BA56BEE7 /* WikipediaFactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WikipediaFactsService.swift; sourceTree = "<group>"; };
 		30B5AC43AC3241B7E91D7194 /* GeoFactsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoFactsStore.swift; sourceTree = "<group>"; };
 		FD3D8648C832CF40962FAE49 /* DestinationSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DestinationSetupView.swift; sourceTree = "<group>"; };
+		B569CC4EA7268AB374DC58FC /* FoundationModelBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelBridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,6 +118,7 @@
 				BD54AF5D3BF1528361B87BF4 /* LocationService.swift */,
 				C8D669B85C57A135BA56BEE7 /* WikipediaFactsService.swift */,
 				30B5AC43AC3241B7E91D7194 /* GeoFactsStore.swift */,
+				B569CC4EA7268AB374DC58FC /* FoundationModelBridge.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -201,6 +204,7 @@
 				7F46AA2B406C9F200B2ADFFC /* WikipediaFactsService.swift in Sources */,
 				E52EA0E34BF7CAB0203AE79F /* GeoFactsStore.swift in Sources */,
 				7580A3D31283DF78091B0B89 /* DestinationSetupView.swift in Sources */,
+				D4FAAB5BDA4CF48E92A99C93 /* FoundationModelBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

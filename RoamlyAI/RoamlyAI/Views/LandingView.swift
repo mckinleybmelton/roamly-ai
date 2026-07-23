@@ -107,9 +107,10 @@ struct LandingView: View {
                                         .font(.caption)
                                         .foregroundColor(.white.opacity(0.7))
                                     
-                                    Text(lastResponse)
+                                    Text(LocalizedStringKey(lastResponse))
                                         .font(.body)
                                         .foregroundColor(.white)
+                                        .tint(.white)
                                         .padding()
                                         .background(Color.blue.opacity(0.3))
                                         .cornerRadius(12)
@@ -234,7 +235,7 @@ struct LandingView: View {
                     // Instructions
                     VStack(spacing: 8) {
                         if travelAI.modelManager.isModelLoaded {
-                            Text("🚀 Offline AI Ready • Tap to start/stop continuous listening")
+                            Text("🚀 \(modelStatusText) • Tap to start/stop continuous listening")
                                 .font(.caption)
                                 .foregroundColor(.white.opacity(0.7))
                         } else {
@@ -283,7 +284,12 @@ struct LandingView: View {
     
     private var modelStatusText: String {
         if travelAI.modelManager.isModelLoaded {
-            return "Offline AI Ready"
+            switch travelAI.modelManager.generationMode {
+            case .foundationModel:
+                return "On-Device AI Ready"
+            case .templateFallback:
+                return "Offline AI Ready"
+            }
         } else if travelAI.modelManager.isLoadingModel {
             return "Loading AI Model..."
         } else if let error = travelAI.modelManager.modelError {
@@ -382,7 +388,13 @@ struct LandingView: View {
     
     private func processCompletedSpeech(_ text: String) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
-        
+        // Continuous listening can fire another completion (e.g. a second pause detected)
+        // before the previous query's response finishes generating. Without this guard,
+        // overlapping travelAI.processQuery calls could race on shared state like
+        // GemmaModelManager.generationMode, and the UI has no way to represent two
+        // simultaneous responses anyway — queries are handled one at a time.
+        guard !isProcessingQuery else { return }
+
         let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
         currentTranscription = query
         

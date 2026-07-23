@@ -151,7 +151,7 @@ final class WikipediaFactsService {
                         latitude: coordinate.lat,
                         longitude: coordinate.lon,
                         city: cityName,
-                        sourceURL: "https://en.wikipedia.org/wiki/\(page.title.replacingOccurrences(of: " ", with: "_"))"
+                        sourceURL: Self.wikipediaURL(forTitle: page.title)
                     ))
                 }
             }
@@ -161,6 +161,20 @@ final class WikipediaFactsService {
         } while continueParams != nil && requestCount < Self.maxPagesPerCell
 
         return facts
+    }
+
+    /// Builds a Wikipedia article URL from a page title, percent-encoding everything beyond
+    /// RFC 3986 unreserved characters (not just spaces) — Wikipedia titles can legitimately
+    /// contain '&', '#', '?', '/', and non-ASCII characters that would otherwise produce a
+    /// malformed or misinterpreted URL.
+    private static func wikipediaURL(forTitle title: String) -> String? {
+        let underscored = title.replacingOccurrences(of: " ", with: "_")
+        var allowed = CharacterSet.alphanumerics
+        allowed.insert(charactersIn: "-._~")
+        guard let encoded = underscored.addingPercentEncoding(withAllowedCharacters: allowed) else {
+            return nil
+        }
+        return "https://en.wikipedia.org/wiki/\(encoded)"
     }
 
     private static func buildURL(center: CLLocationCoordinate2D, continueParams: [String: String]?) -> URL? {

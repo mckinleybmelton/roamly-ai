@@ -3,29 +3,40 @@ import CoreML
 import NaturalLanguage
 import MapKit
 
+enum GenerationMode: Equatable {
+    case foundationModel
+    case templateFallback
+}
+
 @MainActor
 class GemmaModelManager: ObservableObject {
     @Published var isModelLoaded = false
     @Published var isLoadingModel = false
     @Published var loadingProgress: Float = 0.0
     @Published var modelError: String?
-    
+    @Published private(set) var generationMode: GenerationMode = .templateFallback
+
     private var sentimentClassifier: NLModel?
     private var languageRecognizer = NLLanguageRecognizer()
-    
+    private var llmBridge: GroundedLLMBridge?
+
     init() {
         Task {
             await loadLocalModel()
         }
     }
-    
+
     func loadLocalModel() async {
         await MainActor.run {
             isLoadingModel = true
             loadingProgress = 0.0
             modelError = nil
         }
-        
+
+        if #available(iOS 26.0, *), FoundationModelBridge.isAvailable {
+            llmBridge = FoundationModelBridge()
+        }
+
         do {
             // Load Apple's built-in sentiment classifier as a lightweight alternative
             // This provides basic NLP capabilities offline
@@ -50,16 +61,111 @@ class GemmaModelManager: ObservableObject {
             }
         }
     }
-    
+
+    /// Whether the real on-device LLM is usable right now — checked fresh rather than cached,
+    /// since Apple Intelligence can be toggled off in Settings mid-session, or the model can
+    /// still be installing on first boot after enabling it.
+    private static func isFoundationModelCurrentlyAvailable() -> Bool {
+        if #available(iOS 26.0, *) {
+            return FoundationModelBridge.isAvailable
+        }
+        return false
+    }
+
     func generateResponse(for prompt: String, locationInfo: LocationInfo? = nil, groundingFacts: [GeoFact] = []) async throws -> String {
         guard isModelLoaded else {
             throw ModelError.modelNotLoaded
         }
 
+        if let bridge = llmBridge, Self.isFoundationModelCurrentlyAvailable() {
+            generationMode = .foundationModel
+            do {
+                let instructions = Self.groundedInstructions(locationInfo: locationInfo, groundingFacts: groundingFacts)
+                let response = try await bridge.respond(system: instructions, prompt: prompt)
+                return Self.appendCitations(to: response, facts: groundingFacts)
+            } catch {
+                print("Foundation Models generation failed, falling back to templates: \(error)")
+                // Fall through to the template path below.
+            }
+        }
+
+        generationMode = .templateFallback
+
         // Simulate processing delay for realistic feel
         try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
 
         return generateIntelligentResponse(for: prompt, locationInfo: locationInfo, groundingFacts: groundingFacts)
+    }
+
+    /// System instructions for the real on-device LLM. Explicitly forbids answering beyond the
+    /// provided facts (the actual anti-hallucination mechanism) and instructs the model to
+    /// mention Wikipedia as the source when it draws on a cached fact, so attribution is baked
+    /// into the generated language itself rather than relying solely on a UI footer.
+    private static func groundedInstructions(locationInfo: LocationInfo?, groundingFacts: [GeoFact]) -> String {
+        var instructions = """
+        You are Roamly, a friendly, concise offline travel guide assistant speaking to a \
+        traveler in real time.
+        """
+
+        if groundingFacts.isEmpty {
+            instructions += """
+
+
+            You have no verified local facts cached for the traveler's current location. If asked \
+            about specific history or landmarks at their exact spot, say plainly that you don't have \
+            cached information for this location rather than guessing or inventing details. You may \
+            still give general, non-location-specific travel advice.
+            """
+        } else {
+            // Kept well under Foundation Models' 4096-token session budget (instructions +
+            // prompt + output all count against it) — 8 facts at up to 600 chars each could
+            // approach that limit in dense areas and force an avoidable fallback to templates.
+            let factsBlock = groundingFacts.prefix(5)
+                .map { "- \($0.title): \($0.summary)" }
+                .joined(separator: "\n")
+
+            instructions += """
+
+
+            Use ONLY the following verified facts (sourced from Wikipedia, cached on-device near the \
+            traveler's current GPS location) when answering questions about their surroundings or \
+            local history. Do not state anything as historical fact unless it's grounded in this \
+            list — if asked about something this list doesn't cover, say you don't have information \
+            about that specific detail rather than guessing. When you use one of these facts, mention \
+            that it comes from Wikipedia so the traveler knows the source.
+
+            \(factsBlock)
+            """
+        }
+
+        if let cityName = locationInfo?.cityName {
+            instructions += "\n\nThe traveler is currently in or near \(cityName)."
+        }
+
+        return instructions
+    }
+
+    /// Appends a plain-text "Sources:" line with Markdown links for facts that were made
+    /// available to this response, so the citation is visible and tappable in the UI (not just
+    /// implied by the model's own wording).
+    private static func appendCitations(to response: String, facts: [GeoFact]) -> String {
+        let links = facts.prefix(3).compactMap { fact -> String? in
+            guard let urlString = fact.sourceURL else { return nil }
+            return "[\(markdownSafe(fact.title))](\(urlString))"
+        }
+        guard !links.isEmpty else { return response }
+        return response + "\n\nSources: " + links.joined(separator: ", ")
+    }
+
+    /// Response text is rendered by the UI as Markdown (so citation links are tappable), but
+    /// Wikipedia's free-text titles/summaries are third-party content we don't control — e.g.
+    /// IPA pronunciation guides in lead sentences commonly use literal square brackets, like
+    /// "[ɔʃpiˈtal]". Left as-is, that can be misread as (broken) Markdown link syntax by the
+    /// renderer. Swap brackets for parens rather than risk unverified backslash-escaping against
+    /// SwiftUI's specific (reduced, non-CommonMark) Markdown subset.
+    private static func markdownSafe(_ text: String) -> String {
+        text.replacingOccurrences(of: "[", with: "(")
+            .replacingOccurrences(of: "]", with: ")")
     }
 
     private func generateIntelligentResponse(for query: String, locationInfo: LocationInfo?, groundingFacts: [GeoFact]) -> String {
@@ -151,9 +257,16 @@ class GemmaModelManager: ObservableObject {
 
     private func factsSection(_ groundingFacts: [GeoFact], limit: Int = 3) -> String {
         guard !groundingFacts.isEmpty else { return "" }
-        var section = "📚 Nearby history:\n"
+        var section = "📚 Nearby history (via Wikipedia):\n"
         for fact in groundingFacts.prefix(limit) {
-            section += "• **\(fact.title)** — \(fact.summary)\n\n"
+            let safeTitle = Self.markdownSafe(fact.title)
+            let titleMarkdown: String
+            if let urlString = fact.sourceURL {
+                titleMarkdown = "[\(safeTitle)](\(urlString))"
+            } else {
+                titleMarkdown = safeTitle
+            }
+            section += "• **\(titleMarkdown)** — \(Self.markdownSafe(fact.summary))\n\n"
         }
         return section
     }

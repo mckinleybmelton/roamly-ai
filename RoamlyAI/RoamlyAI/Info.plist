@@ -52,24 +52,10 @@
 	<string>Roamly AI uses speech recognition to understand your travel questions and provide personalized assistance.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Roamly AI needs your location to provide contextual travel information about your current surroundings and nearby attractions.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Roamly AI uses your location to provide relevant travel information about your current area and nearby points of interest.</string>
 	<key>NSAppTransportSecurity</key>
 	<dict>
 		<key>NSAllowsArbitraryLoads</key>
 		<false/>
-		<key>NSExceptionDomains</key>
-		<dict>
-			<key>huggingface.co</key>
-			<dict>
-				<key>NSExceptionAllowsInsecureHTTPLoads</key>
-				<false/>
-				<key>NSExceptionMinimumTLSVersion</key>
-				<string>TLSv1.2</string>
-				<key>NSIncludesSubdomains</key>
-				<true/>
-			</dict>
-		</dict>
 	</dict>
 	<key>UIBackgroundModes</key>
 	<array>
