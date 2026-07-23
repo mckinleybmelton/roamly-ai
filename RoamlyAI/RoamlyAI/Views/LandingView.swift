@@ -18,6 +18,7 @@ struct LandingView: View {
     @StateObject private var audioRecorder = AudioRecorderViewModel()
     @StateObject private var speechRecognition = SpeechRecognitionService()
     @StateObject private var travelAI = TravelAIService()
+    @State private var showingDestinationSetup = false
     @State private var isListening = false // Changed from isRecording to isListening
     @State private var sessionDuration: TimeInterval = 0
     @State private var timer: Timer?
@@ -28,6 +29,7 @@ struct LandingView: View {
     @State private var isProcessingQuery = false
     
     var body: some View {
+        NavigationView {
         GeometryReader { geometry in
             ZStack {
                 // Background gradient
@@ -262,6 +264,21 @@ struct LandingView: View {
             speechRecognition.requestPermission()
             travelAI.locationManager.requestLocationPermission()
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showingDestinationSetup = true
+                } label: {
+                    Image(systemName: "mappin.and.ellipse")
+                        .foregroundColor(.white)
+                }
+            }
+        }
+        .sheet(isPresented: $showingDestinationSetup) {
+            DestinationSetupView(factsStore: travelAI.factsStore)
+        }
+        }
+        .navigationViewStyle(.stack)
     }
     
     private var modelStatusText: String {

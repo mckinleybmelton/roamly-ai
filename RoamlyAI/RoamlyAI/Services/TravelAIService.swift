@@ -8,19 +8,27 @@ class TravelAIService: ObservableObject {
 
     private let gemmaManager = GemmaModelManager()
     private let locationService = LocationService()
+    private let geoFactsStore = GeoFactsStore()
     private var cancellables = Set<AnyCancellable>()
 
     var locationManager: LocationService {
         return locationService
     }
 
+    var factsStore: GeoFactsStore {
+        return geoFactsStore
+    }
+
     init() {
         // Forward nested ObservableObject changes so views observing
-        // TravelAIService also re-render when gemmaManager/locationService change.
+        // TravelAIService also re-render when gemmaManager/locationService/geoFactsStore change.
         gemmaManager.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
         locationService.objectWillChange
+            .sink { [weak self] _ in self?.objectWillChange.send() }
+            .store(in: &cancellables)
+        geoFactsStore.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
 
@@ -46,7 +54,8 @@ class TravelAIService: ObservableObject {
             do {
                 // Get current location info if needed
                 let locationInfo = await locationService.getCurrentLocationInfo()
-                let response = try await gemmaManager.generateResponse(for: query, locationInfo: locationInfo)
+                let groundingFacts = locationInfo.map { geoFactsStore.facts(near: $0.coordinate) } ?? []
+                let response = try await gemmaManager.generateResponse(for: query, locationInfo: locationInfo, groundingFacts: groundingFacts)
                 return response
             } catch {
                 print("Offline processing failed: \(error)")

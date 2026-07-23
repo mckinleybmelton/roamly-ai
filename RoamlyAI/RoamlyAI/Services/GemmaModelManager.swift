@@ -51,27 +51,27 @@ class GemmaModelManager: ObservableObject {
         }
     }
     
-    func generateResponse(for prompt: String, locationInfo: LocationInfo? = nil) async throws -> String {
+    func generateResponse(for prompt: String, locationInfo: LocationInfo? = nil, groundingFacts: [GeoFact] = []) async throws -> String {
         guard isModelLoaded else {
             throw ModelError.modelNotLoaded
         }
-        
+
         // Simulate processing delay for realistic feel
         try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-        
-        return generateIntelligentResponse(for: prompt, locationInfo: locationInfo)
+
+        return generateIntelligentResponse(for: prompt, locationInfo: locationInfo, groundingFacts: groundingFacts)
     }
-    
-    private func generateIntelligentResponse(for query: String, locationInfo: LocationInfo?) -> String {
+
+    private func generateIntelligentResponse(for query: String, locationInfo: LocationInfo?, groundingFacts: [GeoFact]) -> String {
         let lowercaseQuery = query.lowercased()
-        
+
         // Analyze the query to understand intent
         let travelKeywords = extractTravelKeywords(from: lowercaseQuery)
         let sentiment = analyzeSentiment(query)
-        
+
         // Check for location-specific queries first
         if isLocationQuery(query) {
-            return generateLocationResponse(query: query, locationInfo: locationInfo)
+            return generateLocationResponse(query: query, locationInfo: locationInfo, groundingFacts: groundingFacts)
         }
         
         // Generate contextual responses based on detected intent and sentiment
@@ -131,27 +131,36 @@ class GemmaModelManager: ObservableObject {
         return locationKeywords.contains { lowercaseQuery.contains($0) }
     }
     
-    private func generateLocationResponse(query: String, locationInfo: LocationInfo?) -> String {
+    private func generateLocationResponse(query: String, locationInfo: LocationInfo?, groundingFacts: [GeoFact]) -> String {
         guard let locationInfo = locationInfo else {
             return "🧭 I'd love to help you explore your current location, but I need access to your location first. Please enable location services for more personalized travel assistance!"
         }
-        
+
         let lowercaseQuery = query.lowercased()
-        
+
         if lowercaseQuery.contains("what am i looking at") || lowercaseQuery.contains("what's around me") {
-            return generateSurroundingsResponse(locationInfo: locationInfo)
+            return generateSurroundingsResponse(locationInfo: locationInfo, groundingFacts: groundingFacts)
         } else if lowercaseQuery.contains("where am i") || lowercaseQuery.contains("what place is this") {
-            return generateCurrentLocationResponse(locationInfo: locationInfo)
+            return generateCurrentLocationResponse(locationInfo: locationInfo, groundingFacts: groundingFacts)
         } else if lowercaseQuery.contains("nearby") || lowercaseQuery.contains("near me") {
             return generateNearbyPlacesResponse(locationInfo: locationInfo)
         } else {
-            return generateGeneralLocationResponse(locationInfo: locationInfo)
+            return generateGeneralLocationResponse(locationInfo: locationInfo, groundingFacts: groundingFacts)
         }
     }
-    
-    private func generateSurroundingsResponse(locationInfo: LocationInfo) -> String {
+
+    private func factsSection(_ groundingFacts: [GeoFact], limit: Int = 3) -> String {
+        guard !groundingFacts.isEmpty else { return "" }
+        var section = "📚 Nearby history:\n"
+        for fact in groundingFacts.prefix(limit) {
+            section += "• **\(fact.title)** — \(fact.summary)\n\n"
+        }
+        return section
+    }
+
+    private func generateSurroundingsResponse(locationInfo: LocationInfo, groundingFacts: [GeoFact]) -> String {
         var response = "🗺️ Based on your current location:\n\n"
-        
+
         if let cityName = locationInfo.cityName {
             response += "📍 You're in \(cityName)"
             if let country = locationInfo.countryName {
@@ -159,7 +168,9 @@ class GemmaModelManager: ObservableObject {
             }
             response += "\n\n"
         }
-        
+
+        response += factsSection(groundingFacts)
+
         if !locationInfo.nearbyPlaces.isEmpty {
             response += "🎯 What's around you:\n"
             let nearbyNames = locationInfo.nearbyPlaces.prefix(5).compactMap { place in
@@ -171,40 +182,42 @@ class GemmaModelManager: ObservableObject {
                 return nil
             }
             response += nearbyNames.joined(separator: "\n")
-            
+
             if locationInfo.nearbyPlaces.count > 5 {
                 response += "\n• And \(locationInfo.nearbyPlaces.count - 5) more places nearby"
             }
-        } else {
+        } else if groundingFacts.isEmpty {
             response += "🌿 You appear to be in a quiet area with fewer commercial establishments nearby. This might be a residential area, park, or natural setting."
         }
-        
+
         response += "\n\n💡 Try asking about specific things like restaurants, attractions, or activities near you!"
-        
+
         return response
     }
-    
-    private func generateCurrentLocationResponse(locationInfo: LocationInfo) -> String {
+
+    private func generateCurrentLocationResponse(locationInfo: LocationInfo, groundingFacts: [GeoFact]) -> String {
         var response = "📍 Your Current Location:\n\n"
-        
+
         if let fullAddress = locationInfo.fullAddress {
             response += "🏠 Address: \(fullAddress)\n"
         }
-        
+
         response += "🧭 Coordinates: \(locationInfo.formattedCoordinates)\n\n"
-        
+
+        response += factsSection(groundingFacts, limit: 1)
+
         if let cityName = locationInfo.cityName {
             response += "🏙️ You're currently in \(cityName)"
             if let country = locationInfo.countryName, country != cityName {
                 response += ", \(country)"
             }
             response += ".\n\n"
-            
+
             response += "This is a great base for exploring! Ask me about things to do, places to eat, or attractions in \(cityName)."
         } else {
             response += "You're at coordinates \(locationInfo.formattedCoordinates). Ask me about nearby attractions, restaurants, or activities!"
         }
-        
+
         return response
     }
     
@@ -236,9 +249,9 @@ class GemmaModelManager: ObservableObject {
         return response
     }
     
-    private func generateGeneralLocationResponse(locationInfo: LocationInfo) -> String {
+    private func generateGeneralLocationResponse(locationInfo: LocationInfo, groundingFacts: [GeoFact]) -> String {
         var response = "🗺️ Location Information:\n\n"
-        
+
         if let cityName = locationInfo.cityName {
             response += "📍 Current area: \(cityName)"
             if let country = locationInfo.countryName {
@@ -246,11 +259,13 @@ class GemmaModelManager: ObservableObject {
             }
             response += "\n\n"
         }
-        
+
+        response += factsSection(groundingFacts, limit: 1)
+
         if !locationInfo.nearbyPlaces.isEmpty {
             response += "🎯 I can see \(locationInfo.nearbyPlaces.count) places of interest nearby.\n\n"
         }
-        
+
         response += "💬 Ask me things like:\n"
         response += "• 'What restaurants are near me?'\n"
         response += "• 'What attractions can I visit?'\n"
