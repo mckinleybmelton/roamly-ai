@@ -9,7 +9,6 @@ class AudioRecorderViewModel: NSObject, ObservableObject {
     private var audioRecorder: AVAudioRecorder?
     private var continuousRecordingTimer: Timer?
     private var audioSession = AVAudioSession.sharedInstance()
-    private var continuousRecordingTimer: Timer?
     
     override init() {
         super.init()
@@ -137,6 +136,15 @@ class AudioRecorderViewModel: NSObject, ObservableObject {
         }
     }
     
+    private func restartRecordingSession() {
+        guard isContinuousRecording else { return }
+
+        audioRecorder?.stop()
+        audioRecorder = nil
+
+        startRecordingSession(duration: 3600)
+    }
+
     func stopRecording() {
         guard isRecording else { return }
         

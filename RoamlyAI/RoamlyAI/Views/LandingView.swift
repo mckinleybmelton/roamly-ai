@@ -317,8 +317,10 @@ struct LandingView: View {
         speechRecognition.recognizedText = ""
         conversationHistory.removeAll()
         
-        // Set delegate for speech recognition
-        speechRecognition.delegate = self
+        // Wire up speech recognition callbacks
+        speechRecognition.onComplete = { text in
+            processCompletedSpeech(text)
+        }
         
         // Start timer for session duration
         timer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { _ in
@@ -410,25 +412,6 @@ struct LandingView: View {
         let seconds = Int(duration) % 60
         let tenths = Int((duration.truncatingRemainder(dividingBy: 1)) * 10)
         return String(format: "%02d:%02d.%d", minutes, seconds, tenths)
-    }
-}
-
-// MARK: - SpeechRecognitionDelegate
-extension LandingView: SpeechRecognitionDelegate {
-    func speechRecognitionDidReceiveText(_ text: String) {
-        // Update UI with partial text - handled by @Published property
-    }
-    
-    func speechRecognitionDidComplete(_ finalText: String) {
-        processCompletedSpeech(finalText)
-    }
-    
-    func speechRecognitionDidStart() {
-        // Optional: Handle start event
-    }
-    
-    func speechRecognitionDidStop() {
-        // Optional: Handle stop event
     }
 }
 

@@ -19,7 +19,7 @@ class GemmaModelManager: ObservableObject {
         }
     }
     
-    private func loadLocalModel() async {
+    func loadLocalModel() async {
         await MainActor.run {
             isLoadingModel = true
             loadingProgress = 0.0
@@ -29,14 +29,17 @@ class GemmaModelManager: ObservableObject {
         do {
             // Load Apple's built-in sentiment classifier as a lightweight alternative
             // This provides basic NLP capabilities offline
-            sentimentClassifier = try NLModel(mlModel: try MLModel(contentsOf: Bundle.main.url(forResource: "SentimentClassifier", withExtension: "mlmodelc") ?? URL(string: "")!))
-            
+            guard let modelURL = Bundle.main.url(forResource: "SentimentClassifier", withExtension: "mlmodelc") else {
+                throw ModelError.generationFailed("SentimentClassifier.mlmodelc not found in bundle")
+            }
+            sentimentClassifier = try NLModel(mlModel: try MLModel(contentsOf: modelURL))
+
             await MainActor.run {
                 isModelLoaded = true
                 isLoadingModel = false
                 loadingProgress = 1.0
             }
-            
+
         } catch {
             // Fallback: Use Apple's built-in NLP tools
             await MainActor.run {
@@ -113,7 +116,6 @@ class GemmaModelManager: ObservableObject {
     }
     
     private func analyzeSentiment(_ text: String) -> String {
-        let sentiment = NLSentiment.positive // Simplified for now
         // In a real implementation, you'd use NLTagger for sentiment analysis
         return "neutral"
     }
@@ -273,7 +275,7 @@ class GemmaModelManager: ObservableObject {
         case .zoo: return "Zoo"
         case .stadium: return "Stadium"
         case .laundry: return "Laundry"
-        case .movie: return "Movie Theater"
+        case .movieTheater: return "Movie Theater"
         case .nightlife: return "Nightlife"
         case .park: return "Park"
         default: return "Point of Interest"
