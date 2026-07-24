@@ -56,35 +56,27 @@ struct LandingView: View {
                         Text("Your AI Travel Companion")
                             .font(.headline)
                             .foregroundColor(.white.opacity(0.8))
-                        
-                        // Model Status Indicator
-                        HStack(spacing: 8) {
+
+                        // Status dots — AI model, then location — glanceable, no labels
+                        HStack(spacing: 6) {
                             Circle()
                                 .fill(travelAI.modelManager.isModelLoaded ? Color.green : (travelAI.modelManager.isLoadingModel ? Color.orange : Color.red))
                                 .frame(width: 8, height: 8)
-                            
-                            Text(modelStatusText)
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.8))
-                        }
-                        .padding(.top, 4)
-                        
-                        // Location Status Indicator
-                        HStack(spacing: 8) {
+
                             Circle()
                                 .fill(locationStatusColor)
                                 .frame(width: 8, height: 8)
-                            
-                            Text(locationStatusText)
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.8))
                         }
-                        .padding(.top, 2)
+                        .padding(.top, 4)
                     }
                     .padding(.top, 60)
-                    
+
+                    // Capped, not a full flexible Spacer — an uncapped one would soak up all the
+                    // leftover vertical space in this one gap between the title and the hero
+                    // content below, reading as an accidental hole rather than a deliberate one.
                     Spacer()
-                    
+                        .frame(maxHeight: 60)
+
                     // Response Display
                     if showResponse && !lastResponse.isEmpty {
                         ScrollView {
@@ -148,7 +140,7 @@ struct LandingView: View {
                                 }
                             }
                         }
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 16)
                     }
                     // Interrupted Status (e.g. a phone call)
                     else if isInterrupted {
@@ -163,7 +155,7 @@ struct LandingView: View {
                                 .foregroundColor(.white.opacity(0.8))
                                 .multilineTextAlignment(.center)
                         }
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 16)
                     }
                     // Recording Status
                     else if isListening {
@@ -204,20 +196,15 @@ struct LandingView: View {
                                 }
                             }
                         }
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 16)
                     } else {
                         VStack(spacing: 20) {
                             Text("Tap to start continuous listening")
                                 .font(.title2)
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
-                            
-                            Text("Ask multiple questions hands-free!")
-                                .font(.body)
-                                .foregroundColor(.white.opacity(0.8))
-                                .multilineTextAlignment(.center)
                         }
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 16)
                     }
                     
                     // Push to Talk Button
@@ -246,35 +233,14 @@ struct LandingView: View {
                                 .animation(.easeInOut(duration: 0.2), value: isListening)
                         }
                     }
-                    
+
+                    // Uncapped — collects whatever vertical slack remains below the button
+                    // instead of it pooling in the capped gap above, so extra space on taller
+                    // screens reads as ordinary bottom margin rather than a mid-screen hole.
                     Spacer()
-                    
-                    // Instructions
-                    VStack(spacing: 8) {
-                        if travelAI.modelManager.isModelLoaded {
-                            Text("🚀 \(modelStatusText) • Tap to start/stop continuous listening")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                        } else {
-                            Text("Tap to start continuous listening")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                        }
-                        
-                        Text(isListening ? "Tap again to stop listening" : "Keep talking freely - no need to hold button")
-                            .font(.caption)
-                            .foregroundColor(.white.opacity(0.7))
-                        
-                        if let error = travelAI.modelManager.modelError {
-                            Text("Using fallback mode: \(error)")
-                                .font(.caption2)
-                                .foregroundColor(.orange.opacity(0.8))
-                                .multilineTextAlignment(.center)
-                        }
-                    }
-                    .padding(.bottom, 40)
                 }
                 .padding(.horizontal, 30)
+                .padding(.bottom, 60)
             }
         }
         .onAppear {
@@ -302,23 +268,6 @@ struct LandingView: View {
         .navigationViewStyle(.stack)
     }
     
-    private var modelStatusText: String {
-        if travelAI.modelManager.isModelLoaded {
-            switch travelAI.modelManager.generationMode {
-            case .foundationModel:
-                return "On-Device AI Ready"
-            case .templateFallback:
-                return "Offline AI Ready"
-            }
-        } else if travelAI.modelManager.isLoadingModel {
-            return "Loading AI Model..."
-        } else if let error = travelAI.modelManager.modelError {
-            return "Fallback Mode"
-        } else {
-            return "Initializing..."
-        }
-    }
-    
     private var locationStatusColor: Color {
         switch travelAI.locationManager.authorizationStatus {
         case .authorizedWhenInUse, .authorizedAlways:
@@ -329,25 +278,6 @@ struct LandingView: View {
             return .orange
         @unknown default:
             return .red
-        }
-    }
-    
-    private var locationStatusText: String {
-        switch travelAI.locationManager.authorizationStatus {
-        case .authorizedWhenInUse, .authorizedAlways:
-            if travelAI.locationManager.currentLocation != nil {
-                return "Location Available"
-            } else if travelAI.locationManager.isLoadingLocation {
-                return "Getting Location..."
-            } else {
-                return "Location Ready"
-            }
-        case .denied, .restricted:
-            return "Location Disabled"
-        case .notDetermined:
-            return "Location Pending"
-        @unknown default:
-            return "Location Error"
         }
     }
     
