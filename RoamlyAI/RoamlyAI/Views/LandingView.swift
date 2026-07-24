@@ -27,6 +27,8 @@ struct LandingView: View {
     @State private var showResponse = false
     @State private var conversationHistory: [ConversationItem] = []
     @State private var isProcessingQuery = false
+    @State private var isInterrupted = false
+    @State private var wasListeningBeforeInterruption = false
     
     var body: some View {
         NavigationView {
@@ -148,6 +150,21 @@ struct LandingView: View {
                         }
                         .padding(.bottom, 40)
                     }
+                    // Interrupted Status (e.g. a phone call)
+                    else if isInterrupted {
+                        VStack(spacing: 15) {
+                            Text("Paused")
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.white)
+
+                            Text("Listening will resume automatically when this ends")
+                                .font(.body)
+                                .foregroundColor(.white.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.bottom, 40)
+                    }
                     // Recording Status
                     else if isListening {
                         VStack(spacing: 15) {
@@ -264,6 +281,9 @@ struct LandingView: View {
             audioRecorder.requestPermission()
             speechRecognition.requestPermission()
             travelAI.locationManager.requestLocationPermission()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { notification in
+            handleAudioSessionInterruption(notification)
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -385,7 +405,49 @@ struct LandingView: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.impactOccurred()
     }
-    
+
+    /// Handles AVAudioSession interruptions (phone calls, Siri, other apps taking the
+    /// microphone, etc). AVAudioEngine in particular doesn't survive an interruption on its
+    /// own — Apple's guidance is that the app must stop it on `.began` and, if appropriate,
+    /// reconfigure and restart on `.ended`. A clean stop-then-restart via the existing
+    /// stopListening()/startListening() pair is more robust here than trying to pause/resume
+    /// the engine and recorder in place, which is fragile across a hard interruption boundary.
+    private func handleAudioSessionInterruption(_ notification: Notification) {
+        guard let userInfo = notification.userInfo,
+              let typeValue = userInfo[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: typeValue) else {
+            return
+        }
+
+        switch type {
+        case .began:
+            guard isListening else { return }
+            wasListeningBeforeInterruption = true
+            isInterrupted = true
+            stopListening()
+
+        case .ended:
+            isInterrupted = false
+            guard wasListeningBeforeInterruption else { return }
+            wasListeningBeforeInterruption = false
+
+            var shouldResume = false
+            if let optionsValue = userInfo[AVAudioSessionInterruptionOptionKey] as? UInt {
+                shouldResume = AVAudioSession.InterruptionOptions(rawValue: optionsValue).contains(.shouldResume)
+            }
+
+            guard shouldResume else { return }
+            // Give the system a moment to fully release the audio session before reclaiming it —
+            // reactivating immediately as the interruption ends can occasionally fail.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                startListening()
+            }
+
+        @unknown default:
+            break
+        }
+    }
+
     private func processCompletedSpeech(_ text: String) {
         guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         // Continuous listening can fire another completion (e.g. a second pause detected)
