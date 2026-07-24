@@ -1,214 +1,131 @@
-# Roamly AI - iOS App
+# Roamly AI
 
-A SwiftUI-based iOS application that provides AI-powered travel assistance through voice interaction with **offline AI capabilities**.
+**A voice-first travel companion that works without a network connection.**
 
-## 🚀 Key Features
+Roamly AI is an iOS application that answers a traveler's questions — about their surroundings, nearby history, food, transport, and logistics — entirely on-device. There is no server in the request path and no per-query API cost: speech recognition, reasoning, and response generation all happen locally on the phone.
 
-- **Push-to-Talk Interface**: Clean, modern landing page with a prominent round microphone button
-- **Offline AI Processing**: Intelligent travel responses using local Natural Language Processing (no internet required)
-- **Location-Aware Responses**: GPS-powered contextual answers about your current surroundings
-- **Voice Recognition**: Real-time speech-to-text conversion using Apple's Speech framework
-- **Smart Context Analysis**: Understands travel intent and provides contextual responses
-- **"What Am I Looking At?" Feature**: Ask about your current location and get detailed information about nearby places
-- **Responsive Design**: Optimized for both iPhone and iPad
-- **Visual Feedback**: Real-time recording status with animated audio waves
+## Why offline matters here
 
-## 🧠 Offline AI Technology
+Travel is precisely the situation where connectivity is least reliable and data privacy matters most: roaming charges, dead zones on transit or in older buildings, foreign SIMs that haven't activated yet, and a general reluctance to stream a live GPS feed and voice queries to a third-party server while abroad. A cloud-dependent assistant degrades exactly when a traveler needs it most.
 
-The app uses advanced local NLP (Natural Language Processing) to provide intelligent travel advice without requiring an internet connection:
+Roamly is built around the opposite assumption: the assistant should work identically in a hotel with no Wi-Fi as it does at home. That constraint shapes every layer of the product, from how it downloads knowledge ahead of time to how it recovers from the model itself being unavailable.
 
-- **Intent Recognition**: Analyzes user queries to understand travel-related intent
-- **Location-Aware Processing**: Integrates GPS data to provide contextual responses about current surroundings
-- **Contextual Responses**: Provides relevant advice based on detected topics (weather, food, hotels, etc.)
-- **Keyword Analysis**: Extracts travel-specific terms to generate appropriate responses
-- **Nearby Places Detection**: Identifies restaurants, attractions, hotels, and points of interest around you
-- **Fallback Mode**: Graceful degradation if advanced features aren't available
+## What it does
 
-## Architecture
+- **Push-to-talk and hands-free listening** — a single button starts a continuous listening session; the app detects natural pauses in speech and treats each one as a separate question, so a traveler can ask several things in a row without touching the screen again.
+- **Location-aware answers** — "What am I looking at?", "Where am I?", and "What's nearby?" are answered using live GPS, reverse geocoding, and nearby points of interest, without any of it leaving the device.
+- **Grounded local history** — ahead of a trip, a traveler downloads a city by name; Roamly then caches real historical and background information tied to specific coordinates around that city, so it can answer with actual facts about a landmark rather than a generic description.
+- **On-device generation, with a safety net** — on supported hardware, responses are produced by Apple's on-device language model rather than canned text. Where that model isn't available (older devices, or the feature disabled in Settings), Roamly falls back to a deterministic rules-based response engine so the app never goes silent.
+- **Resilient by design** — a phone call, Siri, or another app taking the microphone mid-conversation is treated as an expected event, not a crash: the app pauses cleanly and resumes automatically once the interruption ends.
 
-The app follows the MVVM (Model-View-ViewModel) architecture pattern:
+## How it works, at a glance
+
+```
+Voice  ──▶  Speech-to-text  ──▶  Grounding lookup  ──▶  Response generation  ──▶  Spoken-style reply
+(mic)       (on-device)          (cached local facts     (on-device LLM, with       (with source
+                                   + live GPS/POI data)    rules-engine fallback)     attribution)
+```
+
+Before any of that runs, a separate, one-time pipeline does the legwork of building the local knowledge base:
+
+```
+City name  ──▶  Geocode  ──▶  Tiled search across the area  ──▶  Historical/background facts,
+                                (real public reference data)      tagged to exact coordinates
+                                                                          │
+                                                                          ▼
+                                                      Persisted locally, available offline forever after
+```
+
+Everything to the right of the first arrow in both diagrams runs without a network connection once the initial download is complete.
+
+## Product principles
+
+- **Privacy by construction, not by policy.** Voice audio, transcripts, and location data are processed on-device. There is nothing to opt out of, because there is no server collecting it in the first place.
+- **Degrade gracefully, never silently.** Every layer of the system — the language model, the location service, the network fetch that builds the local knowledge base — has a defined fallback behavior. The app should always produce *some* honest answer, and should say plainly when it doesn't know something rather than inventing a plausible-sounding one.
+- **Don't let the model make things up.** When Roamly answers a question about a specific landmark, it's constrained to only state what's actually in its cached, sourced knowledge base for that location, and it cites the source. If nothing is cached for where the traveler is standing, it says so instead of guessing.
+
+## Technical architecture
+
+The app follows an MVVM structure with a clear separation between UI, orchestration, and the underlying services each capability depends on.
+
+**Presentation layer**
+- `LandingView` — the primary voice interface: listening state, live transcription, response display, and status indicators.
+- `DestinationSetupView` — city search, download, and management for the local knowledge base.
+
+**Orchestration**
+- `TravelAIService` — the single coordination point the UI talks to. It composes the language model, location service, and local knowledge store, and forwards their state changes so the UI stays reactive without needing to know about each dependency individually.
+
+**Core services**
+- `SpeechRecognitionService` — continuous speech-to-text via Apple's Speech framework, with pause detection to segment a hands-free session into discrete queries.
+- `AudioRecorderViewModel` — manages the underlying audio session, including graceful recovery from interruptions (phone calls, Siri, other apps requesting the microphone).
+- `LocationService` — GPS access, reverse geocoding, and nearby-place search via Core Location and MapKit, requested only when needed.
+- `GemmaModelManager` — the response-generation layer. Attempts on-device LLM generation first; if that's unavailable, falls back to a topic-classification and template-response engine so the app remains fully functional on any supported device.
+- `FoundationModelBridge` — a thin, availability-gated wrapper around Apple's Foundation Models framework, isolating the rest of the codebase from a platform API that's only present on newer OS versions and hardware.
+- `WikipediaFactsService` / `GeoFactsStore` — the local knowledge pipeline: geocoding a city, tiling a search grid across it, pulling sourced background facts tied to coordinates, and persisting them for fast, fully offline, GPS-proximity lookup later — across every city a traveler has downloaded, not just the most recent one.
+
+## Technology stack
+
+| Layer | Technology |
+|---|---|
+| UI | SwiftUI |
+| Speech-to-text | Apple Speech framework |
+| Audio | AVFoundation |
+| On-device generation | Apple Foundation Models (with a rules-based fallback engine) |
+| Location & mapping | Core Location, MapKit |
+| Local knowledge source | MediaWiki/Wikipedia public API |
+| Persistence | Local file storage (Application Support, excluded from iCloud backup) |
+| Reactive state | Combine |
+
+## Project structure
 
 ```
 RoamlyAI/
 ├── RoamlyAI/
-│   ├── RoamlyAIApp.swift           # Main app entry point
+│   ├── RoamlyAIApp.swift                # App entry point
 │   ├── Views/
-│   │   └── LandingView.swift       # Main landing page with push-to-talk button
+│   │   ├── LandingView.swift            # Primary voice interface
+│   │   └── DestinationSetupView.swift   # City download & management
 │   ├── ViewModels/
-│   │   └── AudioRecorderViewModel.swift  # Handles audio recording logic
+│   │   └── AudioRecorderViewModel.swift # Audio session management
 │   ├── Models/
-│   │   └── AudioMessage.swift      # Data models for audio and travel queries
+│   │   ├── AudioMessage.swift           # Audio/query data models
+│   │   └── GeoFact.swift                # A single cached, geo-tagged fact
 │   ├── Services/
-│   │   ├── SpeechRecognitionService.swift  # Speech-to-text conversion
-│   │   └── TravelAIService.swift   # AI service integration (placeholder)
-│   ├── Assets.xcassets/            # App icons and assets
-│   └── Info.plist                  # App configuration and permissions
-├── RoamlyAI.xcodeproj/             # Xcode project file
-└── RoamlyAI.xcworkspace/           # Xcode workspace
+│   │   ├── SpeechRecognitionService.swift
+│   │   ├── TravelAIService.swift        # Orchestration layer
+│   │   ├── GemmaModelManager.swift      # Response generation + fallback
+│   │   ├── FoundationModelBridge.swift  # On-device LLM integration
+│   │   ├── LocationService.swift        # GPS, geocoding, nearby places
+│   │   ├── WikipediaFactsService.swift  # Local knowledge base builder
+│   │   └── GeoFactsStore.swift          # Local persistence & proximity lookup
+│   ├── Assets.xcassets/
+│   └── Info.plist
+└── RoamlyAI.xcodeproj/
 ```
-
-## Key Components
-
-### LandingView
-- Beautiful gradient background with status indicators
-- Animated round push-to-talk button with state changes
-- Real-time recording feedback with audio wave animation
-- Live speech transcription display
-- AI response display with conversation history
-- Offline mode status indicator
-- Haptic feedback for better user experience
-
-### AudioRecorderViewModel
-- Manages audio recording sessions
-- Handles microphone permissions
-- Records audio in high-quality M4A format
-- Provides real-time recording state updates
-
-### SpeechRecognitionService
-- Converts speech to text using Apple's Speech framework
-- Handles speech recognition permissions
-- Provides real-time transcription updates
-- Supports multiple languages (currently configured for English)
-
-### GemmaModelManager (Offline AI Engine)
-- Local Natural Language Processing using Core ML and NL framework
-- Intent recognition for travel-related queries
-- Contextual response generation based on detected topics
-- Keyword analysis and sentiment understanding
-- Graceful fallback modes for maximum compatibility
-
-### LocationService
-- GPS location access with permission handling
-- Reverse geocoding to get address and place information
-- Nearby places search using MapKit
-- Real-time location updates with battery optimization
-- Privacy-focused location handling (only when needed)
-
-### TravelAIService
-- Orchestrates offline AI processing
-- Integrates speech recognition with local AI model and location data
-- Provides intelligent travel advice without internet connection
-- Handles error cases and fallback responses
 
 ## Requirements
 
-- iOS 15.0+
-- Xcode 15.0+
-- Swift 5.0+
-- Microphone access permission
-- Speech recognition permission
+- iOS 15.0+ (core experience); iOS 26.0+ and Apple Intelligence–eligible hardware for on-device LLM generation — the app runs on earlier devices via the fallback response engine
+- Xcode 26+
+- A physical device for microphone, speech recognition, and on-device model testing (the Simulator cannot fully exercise any of the three)
 
-## Setup Instructions
+## Getting started
 
-1. **Open the Project**:
-   ```bash
-   cd RoamlyAI
-   open RoamlyAI.xcodeproj
-   ```
+```bash
+cd RoamlyAI
+open RoamlyAI.xcodeproj
+```
 
-2. **Configure Signing**:
-   - Select your development team in the project settings
-   - Update the bundle identifier if needed
+Select a development team under the target's signing settings, choose a physical device as the run destination, and build. On first launch, the app requests microphone, speech recognition, and location permissions — each is explained in-context via the descriptions declared in `Info.plist`.
 
-3. **Run on Device**:
-   - Connect your iOS device
-   - Select your device as the target
-   - Build and run (⌘+R)
+To try the local knowledge base, open the destination picker from the map-pin icon, search for a city, and download it. Standing near a real location in that city and asking "What am I looking at?" will surface cached, sourced facts about it.
 
-   **Note**: Audio recording and speech recognition require a physical device and won't work in the simulator.
+## What's next
 
-## Permissions
-
-The app requires the following permissions, which are automatically requested:
-
-- **Microphone Access**: For recording voice input
-- **Speech Recognition**: For converting speech to text
-
-These permissions are declared in `Info.plist` with user-friendly descriptions.
-
-## 📱 Usage
-
-1. **Launch the App**: Open Roamly AI on your device
-2. **Grant Permissions**: Allow microphone and speech recognition access when prompted
-3. **Check AI Status**: Look for the green indicator showing "Offline AI Ready"
-4. **Start Recording**: Tap and hold the round microphone button
-5. **Speak Your Query**: Ask any travel-related question (e.g., "Where should I eat in Tokyo?")
-6. **View Live Transcription**: See your words appear in real-time
-7. **Release to Process**: Release the button to get an AI-powered response
-8. **Read Response**: View the intelligent travel advice generated offline
-
-## 🎯 Example Queries
-
-The offline AI understands various travel topics and can provide location-aware responses:
-
-### Location-Based Queries
-- **"What am I looking at?"** - Get detailed information about your current surroundings
-- **"Where am I?"** - Learn about your current location and address
-- **"What's around me?"** - Discover nearby restaurants, attractions, and points of interest
-- **"What's nearby?"** - Find places of interest in your immediate area
-
-### General Travel Topics
-- **Weather**: "What should I know about weather in Paris?"
-- **Food**: "Where can I find authentic local cuisine?"
-- **Hotels**: "What should I consider when booking accommodation?"
-- **Attractions**: "What are the must-see places to visit?"
-- **Transportation**: "How should I get around the city?"
-- **Budget**: "How can I save money while traveling?"
-- **Safety**: "What safety precautions should I take?"
-- **Culture**: "What cultural customs should I be aware of?"
-
-## 🔧 Technical Features
-
-### Offline Capabilities
-- **No Internet Required**: Full AI functionality works without network connection
-- **Local Processing**: Uses Apple's Core ML and Natural Language frameworks
-- **Smart Intent Recognition**: Understands context and travel-related topics
-- **Contextual Responses**: Provides relevant advice based on query analysis
-
-### Performance Optimizations
-- **Lightweight AI**: Efficient local processing optimized for mobile devices
-- **Memory Management**: Smart loading and unloading of AI resources
-- **Battery Efficient**: Minimal power consumption during AI processing
-- **Real-time Feedback**: Immediate visual and haptic feedback
-
-## Customization
-
-### UI Styling
-- Modify colors and gradients in `LandingView.swift`
-- Adjust button size and animations
-- Customize fonts and spacing
-
-### AI Integration
-- Replace the mock responses in `TravelAIService.swift`
-- Add your preferred AI service API (OpenAI, Google AI, etc.)
-- Update the `processQuery` method with real API calls
-
-### Audio Settings
-- Modify recording quality in `AudioRecorderViewModel.swift`
-- Change audio format settings
-- Adjust recording parameters
-
-## Future Enhancements
-
-- [ ] Add conversation history
-- [ ] Implement text-to-speech for AI responses
-- [ ] Add travel-specific features (maps, bookings, etc.)
-- [ ] Support for multiple languages
-- [ ] Offline mode capabilities
-- [ ] Integration with travel APIs
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly on device
-5. Submit a pull request
+- Broader per-city coverage and smarter storage management for downloaded areas
+- Persisted conversation history across sessions
+- Text-to-speech for fully hands-free round trips
 
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Support
-
-For questions or support, please open an issue in the repository.
+No license file is currently included in this repository.
