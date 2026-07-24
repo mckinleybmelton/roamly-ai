@@ -2,20 +2,16 @@ import Foundation
 import Speech
 import AVFoundation
 
-protocol SpeechRecognitionDelegate: AnyObject {
-    func speechRecognitionDidReceiveText(_ text: String)
-    func speechRecognitionDidComplete(_ finalText: String)
-    func speechRecognitionDidStart()
-    func speechRecognitionDidStop()
-}
-
 class SpeechRecognitionService: ObservableObject {
     @Published var isListening = false
     @Published var recognizedText = ""
     @Published var hasPermission = false
     @Published var isContinuousListening = false
-    
-    weak var delegate: SpeechRecognitionDelegate?
+
+    var onReceiveText: ((String) -> Void)?
+    var onComplete: ((String) -> Void)?
+    var onStart: (() -> Void)?
+    var onStop: (() -> Void)?
     
     private let speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
     private var recognitionRequest: SFSpeechAudioBufferRecognitionRequest?
@@ -58,7 +54,7 @@ class SpeechRecognitionService: ObservableObject {
             self.isListening = true
         }
         
-        delegate?.speechRecognitionDidStart()
+        onStart?()
     }
     
     func startContinuousListening() throws {
@@ -73,7 +69,7 @@ class SpeechRecognitionService: ObservableObject {
             self.isContinuousListening = true
         }
         
-        delegate?.speechRecognitionDidStart()
+        onStart?()
     }
     
     private func startSpeechRecognition() throws {
@@ -122,7 +118,7 @@ class SpeechRecognitionService: ObservableObject {
                 self.recognizedText = newText
             }
             
-            delegate?.speechRecognitionDidReceiveText(newText)
+            onReceiveText?(newText)
             
             if isContinuousListening {
                 // Update last speech time
@@ -144,8 +140,9 @@ class SpeechRecognitionService: ObservableObject {
             if !isContinuousListening {
                 stopListening()
                 
-                if let finalText = recognizedText, !finalText.isEmpty {
-                    delegate?.speechRecognitionDidComplete(finalText)
+                let finalText = recognizedText
+                if !finalText.isEmpty {
+                    onComplete?(finalText)
                 }
             } else if isFinal {
                 // In continuous mode, restart recognition after a brief pause
@@ -160,7 +157,7 @@ class SpeechRecognitionService: ObservableObject {
         guard isContinuousListening && !text.isEmpty else { return }
         
         // Process the accumulated text as a complete query
-        delegate?.speechRecognitionDidComplete(text)
+        onComplete?(text)
         
         // Clear accumulated text
         accumulatedText = ""
@@ -190,7 +187,7 @@ class SpeechRecognitionService: ObservableObject {
         cleanup()
         
         if !accumulatedText.isEmpty {
-            delegate?.speechRecognitionDidComplete(accumulatedText)
+            onComplete?(accumulatedText)
         }
         
         DispatchQueue.main.async {
@@ -198,7 +195,7 @@ class SpeechRecognitionService: ObservableObject {
             self.isContinuousListening = false
         }
         
-        delegate?.speechRecognitionDidStop()
+        onStop?()
     }
     
     func stopContinuousListening() {

@@ -7,34 +7,43 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1A000001000000000000001 /* RoamlyAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000001000000000000000 /* RoamlyAIApp.swift */; };
-		1A000001000000000000003 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000001000000000000002 /* LandingView.swift */; };
-		1A000001000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A000001000000000000004 /* Assets.xcassets */; };
-		1A000001000000000000007 /* AudioRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000001000000000000006 /* AudioRecorderViewModel.swift */; };
-		1A000001000000000000009 /* AudioMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000001000000000000008 /* AudioMessage.swift */; };
-		1A00000100000000000000B /* SpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000100000000000000A /* SpeechRecognitionService.swift */; };
-		1A00000100000000000000D /* TravelAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A00000100000000000000C /* TravelAIService.swift */; };
-		1A000001000000000000011 /* GemmaModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000001000000000000012 /* GemmaModelManager.swift */; };
-		1A000001000000000000013 /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A000001000000000000014 /* LocationService.swift */; };
-/* End PBXBuildFile section */
+		4D7A936843D3AB3DA7F8B620 /* RoamlyAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608A19119B795A8B92C2166B /* RoamlyAIApp.swift */; };
+		BB7020A4E9ADFA9231E63BA3 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B49A044E546F9B5BB14563D /* LandingView.swift */; };
+		40868F62B5CAD054B47071B8 /* AudioRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35C11E3ECE94803D9AED3323 /* AudioRecorderViewModel.swift */; };
+		9CDBADE3C8BB68A1E213ACDB /* AudioMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 825F3DE460AA6ADE8C187063 /* AudioMessage.swift */; };
+		512BE135EACF7BC4E9A2D407 /* SpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259131EB58FA7D8F650E4050 /* SpeechRecognitionService.swift */; };
+		5F11F8015EDE7FED6D470A1F /* TravelAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F46E136B063DA8A7A2599F8 /* TravelAIService.swift */; };
+		C5024FB1D43A47C61C851057 /* GemmaModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CE3CCF022E87416FFBEAC94 /* GemmaModelManager.swift */; };
+		10A9D0D555FFE56151339B9D /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD54AF5D3BF1528361B87BF4 /* LocationService.swift */; };
+		10A898D61F5DAB68CC665F3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7CBAE8952D3CC3FF597E1872 /* Assets.xcassets */; };
+		C70122EE8467D397BE60ECBB /* GeoFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC5C6BFE5FFEBA23FC16090 /* GeoFact.swift */; };
+		7F46AA2B406C9F200B2ADFFC /* WikipediaFactsService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8D669B85C57A135BA56BEE7 /* WikipediaFactsService.swift */; };
+		E52EA0E34BF7CAB0203AE79F /* GeoFactsStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 30B5AC43AC3241B7E91D7194 /* GeoFactsStore.swift */; };
+		7580A3D31283DF78091B0B89 /* DestinationSetupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FD3D8648C832CF40962FAE49 /* DestinationSetupView.swift */; };
+		D4FAAB5BDA4CF48E92A99C93 /* FoundationModelBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B569CC4EA7268AB374DC58FC /* FoundationModelBridge.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		1A00000100000000000000F /* RoamlyAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RoamlyAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		1A000001000000000000000 /* RoamlyAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoamlyAIApp.swift; sourceTree = "<group>"; };
-		1A000001000000000000002 /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
-		1A000001000000000000004 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		1A000001000000000000006 /* AudioRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderViewModel.swift; sourceTree = "<group>"; };
-		1A000001000000000000008 /* AudioMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMessage.swift; sourceTree = "<group>"; };
-		1A00000100000000000000A /* SpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognitionService.swift; sourceTree = "<group>"; };
-		1A00000100000000000000C /* TravelAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelAIService.swift; sourceTree = "<group>"; };
-		1A00000100000000000000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1A000001000000000000012 /* GemmaModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemmaModelManager.swift; sourceTree = "<group>"; };
-		1A000001000000000000014 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		4464B4246BA12A0A1EF48F30 /* RoamlyAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RoamlyAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		608A19119B795A8B92C2166B /* RoamlyAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoamlyAIApp.swift; sourceTree = "<group>"; };
+		5B49A044E546F9B5BB14563D /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
+		35C11E3ECE94803D9AED3323 /* AudioRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderViewModel.swift; sourceTree = "<group>"; };
+		825F3DE460AA6ADE8C187063 /* AudioMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMessage.swift; sourceTree = "<group>"; };
+		259131EB58FA7D8F650E4050 /* SpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognitionService.swift; sourceTree = "<group>"; };
+		6F46E136B063DA8A7A2599F8 /* TravelAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelAIService.swift; sourceTree = "<group>"; };
+		2CE3CCF022E87416FFBEAC94 /* GemmaModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemmaModelManager.swift; sourceTree = "<group>"; };
+		BD54AF5D3BF1528361B87BF4 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
+		7CBAE8952D3CC3FF597E1872 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		EDC6909893AAF90A6D27D0CE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		EAC5C6BFE5FFEBA23FC16090 /* GeoFact.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoFact.swift; sourceTree = "<group>"; };
+		C8D669B85C57A135BA56BEE7 /* WikipediaFactsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WikipediaFactsService.swift; sourceTree = "<group>"; };
+		30B5AC43AC3241B7E91D7194 /* GeoFactsStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeoFactsStore.swift; sourceTree = "<group>"; };
+		FD3D8648C832CF40962FAE49 /* DestinationSetupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DestinationSetupView.swift; sourceTree = "<group>"; };
+		B569CC4EA7268AB374DC58FC /* FoundationModelBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelBridge.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		1A00000100000000000000C /* Frameworks */ = {
+		7E269DDEA6CABB6422617642 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -44,67 +53,72 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1A000001000000000000006 = {
+		402BC73CB5AB7BF94356068F = {
 			isa = PBXGroup;
 			children = (
-				1A000001000000000000011 /* RoamlyAI */,
-				1A000001000000000000010 /* Products */,
+				41AB72C06AB057DDB101A19F /* RoamlyAI */,
+				27A9D1FE78286A9928A263A2 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		1A000001000000000000010 /* Products */ = {
+		27A9D1FE78286A9928A263A2 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1A00000100000000000000F /* RoamlyAI.app */,
+				4464B4246BA12A0A1EF48F30 /* RoamlyAI.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		1A000001000000000000011 /* RoamlyAI */ = {
+		41AB72C06AB057DDB101A19F /* RoamlyAI */ = {
 			isa = PBXGroup;
 			children = (
-				1A000001000000000000000 /* RoamlyAIApp.swift */,
-				1A000001000000000000012 /* Views */,
-				1A000001000000000000013 /* ViewModels */,
-				1A000001000000000000014 /* Models */,
-				1A000001000000000000015 /* Services */,
-				1A000001000000000000004 /* Assets.xcassets */,
-				1A00000100000000000000E /* Info.plist */,
+				608A19119B795A8B92C2166B /* RoamlyAIApp.swift */,
+				DC31DF8C439DA68214407288 /* Views */,
+				B72FDA4E2782960DF61560DE /* ViewModels */,
+				BC960D1858AB9A8834C652B4 /* Models */,
+				C1423E0E1B89E78E8CDF7188 /* Services */,
+				7CBAE8952D3CC3FF597E1872 /* Assets.xcassets */,
+				EDC6909893AAF90A6D27D0CE /* Info.plist */,
 			);
 			path = RoamlyAI;
 			sourceTree = "<group>";
 		};
-		1A000001000000000000012 /* Views */ = {
+		DC31DF8C439DA68214407288 /* Views */ = {
 			isa = PBXGroup;
 			children = (
-				1A000001000000000000002 /* LandingView.swift */,
+				5B49A044E546F9B5BB14563D /* LandingView.swift */,
+				FD3D8648C832CF40962FAE49 /* DestinationSetupView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
 		};
-		1A000001000000000000013 /* ViewModels */ = {
+		B72FDA4E2782960DF61560DE /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				1A000001000000000000006 /* AudioRecorderViewModel.swift */,
+				35C11E3ECE94803D9AED3323 /* AudioRecorderViewModel.swift */,
 			);
 			path = ViewModels;
 			sourceTree = "<group>";
 		};
-		1A000001000000000000014 /* Models */ = {
+		BC960D1858AB9A8834C652B4 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				1A000001000000000000008 /* AudioMessage.swift */,
+				825F3DE460AA6ADE8C187063 /* AudioMessage.swift */,
+				EAC5C6BFE5FFEBA23FC16090 /* GeoFact.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
 		};
-		1A000001000000000000015 /* Services */ = {
+		C1423E0E1B89E78E8CDF7188 /* Services */ = {
 			isa = PBXGroup;
 			children = (
-				1A00000100000000000000A /* SpeechRecognitionService.swift */,
-				1A00000100000000000000C /* TravelAIService.swift */,
-				1A000001000000000000012 /* GemmaModelManager.swift */,
-				1A000001000000000000014 /* LocationService.swift */,
+				259131EB58FA7D8F650E4050 /* SpeechRecognitionService.swift */,
+				6F46E136B063DA8A7A2599F8 /* TravelAIService.swift */,
+				2CE3CCF022E87416FFBEAC94 /* GemmaModelManager.swift */,
+				BD54AF5D3BF1528361B87BF4 /* LocationService.swift */,
+				C8D669B85C57A135BA56BEE7 /* WikipediaFactsService.swift */,
+				30B5AC43AC3241B7E91D7194 /* GeoFactsStore.swift */,
+				B569CC4EA7268AB374DC58FC /* FoundationModelBridge.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -112,13 +126,13 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1A00000100000000000000E /* RoamlyAI */ = {
+		3E6CBAAE7AB258D285C42E16 /* RoamlyAI */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1A00000100000000000001D /* Build configuration list for PBXNativeTarget "RoamlyAI" */;
+			buildConfigurationList = 3E1527BB7CAB8923303648E6 /* Build configuration list for PBXNativeTarget "RoamlyAI" */;
 			buildPhases = (
-				1A00000100000000000000B /* Sources */,
-				1A00000100000000000000C /* Frameworks */,
-				1A00000100000000000000D /* Resources */,
+				9187B12A9F91EEDE1A435B2F /* Sources */,
+				7E269DDEA6CABB6422617642 /* Frameworks */,
+				9333C363E1D5233015BB16B6 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -126,25 +140,25 @@
 			);
 			name = RoamlyAI;
 			productName = RoamlyAI;
-			productReference = 1A00000100000000000000F /* RoamlyAI.app */;
+			productReference = 4464B4246BA12A0A1EF48F30 /* RoamlyAI.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		1A000001000000000000007 /* Project object */ = {
+		E1706B7C8BDAD8B7F67A320B /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1500;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
-					1A00000100000000000000E = {
+					3E6CBAAE7AB258D285C42E16 = {
 						CreatedOnToolsVersion = 15.0;
 					};
 				};
 			};
-			buildConfigurationList = 1A00000100000000000000A /* Build configuration list for PBXProject "RoamlyAI" */;
+			buildConfigurationList = A2355860006866879C9AA07A /* Build configuration list for PBXProject "RoamlyAI" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -152,47 +166,52 @@
 				en,
 				Base,
 			);
-			mainGroup = 1A000001000000000000006;
-			productRefGroup = 1A000001000000000000010 /* Products */;
+			mainGroup = 402BC73CB5AB7BF94356068F;
+			productRefGroup = 27A9D1FE78286A9928A263A2 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1A00000100000000000000E /* RoamlyAI */,
+				3E6CBAAE7AB258D285C42E16 /* RoamlyAI */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		1A00000100000000000000D /* Resources */ = {
+		9333C363E1D5233015BB16B6 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1A000001000000000000005 /* Assets.xcassets in Resources */,
+				10A898D61F5DAB68CC665F3D /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		1A00000100000000000000B /* Sources */ = {
+		9187B12A9F91EEDE1A435B2F /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1A000001000000000000003 /* LandingView.swift in Sources */,
-				1A000001000000000000001 /* RoamlyAIApp.swift in Sources */,
-				1A000001000000000000007 /* AudioRecorderViewModel.swift in Sources */,
-				1A000001000000000000009 /* AudioMessage.swift in Sources */,
-				1A00000100000000000000B /* SpeechRecognitionService.swift in Sources */,
-				1A00000100000000000000D /* TravelAIService.swift in Sources */,
-				1A000001000000000000011 /* GemmaModelManager.swift in Sources */,
-				1A000001000000000000013 /* LocationService.swift in Sources */,
+				BB7020A4E9ADFA9231E63BA3 /* LandingView.swift in Sources */,
+				4D7A936843D3AB3DA7F8B620 /* RoamlyAIApp.swift in Sources */,
+				40868F62B5CAD054B47071B8 /* AudioRecorderViewModel.swift in Sources */,
+				9CDBADE3C8BB68A1E213ACDB /* AudioMessage.swift in Sources */,
+				512BE135EACF7BC4E9A2D407 /* SpeechRecognitionService.swift in Sources */,
+				5F11F8015EDE7FED6D470A1F /* TravelAIService.swift in Sources */,
+				C5024FB1D43A47C61C851057 /* GemmaModelManager.swift in Sources */,
+				10A9D0D555FFE56151339B9D /* LocationService.swift in Sources */,
+				C70122EE8467D397BE60ECBB /* GeoFact.swift in Sources */,
+				7F46AA2B406C9F200B2ADFFC /* WikipediaFactsService.swift in Sources */,
+				E52EA0E34BF7CAB0203AE79F /* GeoFactsStore.swift in Sources */,
+				7580A3D31283DF78091B0B89 /* DestinationSetupView.swift in Sources */,
+				D4FAAB5BDA4CF48E92A99C93 /* FoundationModelBridge.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		1A00000100000000000001B /* Debug */ = {
+		DDDE352652FFCBA2E89002FE /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -255,7 +274,7 @@
 			};
 			name = Debug;
 		};
-		1A00000100000000000001C /* Release */ = {
+		F0DF1FE067448F0923BE1639 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -311,7 +330,7 @@
 			};
 			name = Release;
 		};
-		1A00000100000000000001E /* Debug */ = {
+		28FCB957222B861924AA7B8D /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -340,7 +359,7 @@
 			};
 			name = Debug;
 		};
-		1A00000100000000000001F /* Release */ = {
+		D2AF76EE30BB7F1D64D9B4E7 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -372,25 +391,25 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1A00000100000000000000A /* Build configuration list for PBXProject "RoamlyAI" */ = {
+		A2355860006866879C9AA07A /* Build configuration list for PBXProject "RoamlyAI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1A00000100000000000001B /* Debug */,
-				1A00000100000000000001C /* Release */,
+				DDDE352652FFCBA2E89002FE /* Debug */,
+				F0DF1FE067448F0923BE1639 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1A00000100000000000001D /* Build configuration list for PBXNativeTarget "RoamlyAI" */ = {
+		3E1527BB7CAB8923303648E6 /* Build configuration list for PBXNativeTarget "RoamlyAI" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1A00000100000000000001E /* Debug */,
-				1A00000100000000000001F /* Release */,
+				28FCB957222B861924AA7B8D /* Debug */,
+				D2AF76EE30BB7F1D64D9B4E7 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 1A000001000000000000007 /* Project object */;
+	rootObject = E1706B7C8BDAD8B7F67A320B /* Project object */;
 }

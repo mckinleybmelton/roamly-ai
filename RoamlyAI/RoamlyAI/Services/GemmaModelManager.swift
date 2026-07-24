@@ -3,40 +3,54 @@ import CoreML
 import NaturalLanguage
 import MapKit
 
+enum GenerationMode: Equatable {
+    case foundationModel
+    case templateFallback
+}
+
 @MainActor
 class GemmaModelManager: ObservableObject {
     @Published var isModelLoaded = false
     @Published var isLoadingModel = false
     @Published var loadingProgress: Float = 0.0
     @Published var modelError: String?
-    
+    @Published private(set) var generationMode: GenerationMode = .templateFallback
+
     private var sentimentClassifier: NLModel?
     private var languageRecognizer = NLLanguageRecognizer()
-    
+    private var llmBridge: GroundedLLMBridge?
+
     init() {
         Task {
             await loadLocalModel()
         }
     }
-    
-    private func loadLocalModel() async {
+
+    func loadLocalModel() async {
         await MainActor.run {
             isLoadingModel = true
             loadingProgress = 0.0
             modelError = nil
         }
-        
+
+        if #available(iOS 26.0, *), FoundationModelBridge.isAvailable {
+            llmBridge = FoundationModelBridge()
+        }
+
         do {
             // Load Apple's built-in sentiment classifier as a lightweight alternative
             // This provides basic NLP capabilities offline
-            sentimentClassifier = try NLModel(mlModel: try MLModel(contentsOf: Bundle.main.url(forResource: "SentimentClassifier", withExtension: "mlmodelc") ?? URL(string: "")!))
-            
+            guard let modelURL = Bundle.main.url(forResource: "SentimentClassifier", withExtension: "mlmodelc") else {
+                throw ModelError.generationFailed("SentimentClassifier.mlmodelc not found in bundle")
+            }
+            sentimentClassifier = try NLModel(mlModel: try MLModel(contentsOf: modelURL))
+
             await MainActor.run {
                 isModelLoaded = true
                 isLoadingModel = false
                 loadingProgress = 1.0
             }
-            
+
         } catch {
             // Fallback: Use Apple's built-in NLP tools
             await MainActor.run {
@@ -47,28 +61,123 @@ class GemmaModelManager: ObservableObject {
             }
         }
     }
-    
-    func generateResponse(for prompt: String, locationInfo: LocationInfo? = nil) async throws -> String {
+
+    /// Whether the real on-device LLM is usable right now — checked fresh rather than cached,
+    /// since Apple Intelligence can be toggled off in Settings mid-session, or the model can
+    /// still be installing on first boot after enabling it.
+    private static func isFoundationModelCurrentlyAvailable() -> Bool {
+        if #available(iOS 26.0, *) {
+            return FoundationModelBridge.isAvailable
+        }
+        return false
+    }
+
+    func generateResponse(for prompt: String, locationInfo: LocationInfo? = nil, groundingFacts: [GeoFact] = []) async throws -> String {
         guard isModelLoaded else {
             throw ModelError.modelNotLoaded
         }
-        
+
+        if let bridge = llmBridge, Self.isFoundationModelCurrentlyAvailable() {
+            generationMode = .foundationModel
+            do {
+                let instructions = Self.groundedInstructions(locationInfo: locationInfo, groundingFacts: groundingFacts)
+                let response = try await bridge.respond(system: instructions, prompt: prompt)
+                return Self.appendCitations(to: response, facts: groundingFacts)
+            } catch {
+                print("Foundation Models generation failed, falling back to templates: \(error)")
+                // Fall through to the template path below.
+            }
+        }
+
+        generationMode = .templateFallback
+
         // Simulate processing delay for realistic feel
         try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
-        
-        return generateIntelligentResponse(for: prompt, locationInfo: locationInfo)
+
+        return generateIntelligentResponse(for: prompt, locationInfo: locationInfo, groundingFacts: groundingFacts)
     }
-    
-    private func generateIntelligentResponse(for query: String, locationInfo: LocationInfo?) -> String {
+
+    /// System instructions for the real on-device LLM. Explicitly forbids answering beyond the
+    /// provided facts (the actual anti-hallucination mechanism) and instructs the model to
+    /// mention Wikipedia as the source when it draws on a cached fact, so attribution is baked
+    /// into the generated language itself rather than relying solely on a UI footer.
+    private static func groundedInstructions(locationInfo: LocationInfo?, groundingFacts: [GeoFact]) -> String {
+        var instructions = """
+        You are Roamly, a friendly, concise offline travel guide assistant speaking to a \
+        traveler in real time.
+        """
+
+        if groundingFacts.isEmpty {
+            instructions += """
+
+
+            You have no verified local facts cached for the traveler's current location. If asked \
+            about specific history or landmarks at their exact spot, say plainly that you don't have \
+            cached information for this location rather than guessing or inventing details. You may \
+            still give general, non-location-specific travel advice.
+            """
+        } else {
+            // Kept well under Foundation Models' 4096-token session budget (instructions +
+            // prompt + output all count against it) — 8 facts at up to 600 chars each could
+            // approach that limit in dense areas and force an avoidable fallback to templates.
+            let factsBlock = groundingFacts.prefix(5)
+                .map { "- \($0.title): \($0.summary)" }
+                .joined(separator: "\n")
+
+            instructions += """
+
+
+            Use ONLY the following verified facts (sourced from Wikipedia, cached on-device near the \
+            traveler's current GPS location) when answering questions about their surroundings or \
+            local history. Do not state anything as historical fact unless it's grounded in this \
+            list — if asked about something this list doesn't cover, say you don't have information \
+            about that specific detail rather than guessing. When you use one of these facts, mention \
+            that it comes from Wikipedia so the traveler knows the source.
+
+            \(factsBlock)
+            """
+        }
+
+        if let cityName = locationInfo?.cityName {
+            instructions += "\n\nThe traveler is currently in or near \(cityName)."
+        }
+
+        return instructions
+    }
+
+    /// Appends a plain-text "Sources:" line with Markdown links for facts that were made
+    /// available to this response, so the citation is visible and tappable in the UI (not just
+    /// implied by the model's own wording).
+    private static func appendCitations(to response: String, facts: [GeoFact]) -> String {
+        let links = facts.prefix(3).compactMap { fact -> String? in
+            guard let urlString = fact.sourceURL else { return nil }
+            return "[\(markdownSafe(fact.title))](\(urlString))"
+        }
+        guard !links.isEmpty else { return response }
+        return response + "\n\nSources: " + links.joined(separator: ", ")
+    }
+
+    /// Response text is rendered by the UI as Markdown (so citation links are tappable), but
+    /// Wikipedia's free-text titles/summaries are third-party content we don't control — e.g.
+    /// IPA pronunciation guides in lead sentences commonly use literal square brackets, like
+    /// "[ɔʃpiˈtal]". Left as-is, that can be misread as (broken) Markdown link syntax by the
+    /// renderer. Swap brackets for parens rather than risk unverified backslash-escaping against
+    /// SwiftUI's specific (reduced, non-CommonMark) Markdown subset.
+    private static func markdownSafe(_ text: String) -> String {
+        text.replacingOccurrences(of: "[", with: "(")
+            .replacingOccurrences(of: "]", with: ")")
+    }
+
+    private func generateIntelligentResponse(for query: String, locationInfo: LocationInfo?, groundingFacts: [GeoFact]) -> String {
         let lowercaseQuery = query.lowercased()
-        
+
         // Analyze the query to understand intent
         let travelKeywords = extractTravelKeywords(from: lowercaseQuery)
         let sentiment = analyzeSentiment(query)
-        
+
         // Check for location-specific queries first
         if isLocationQuery(query) {
-            return generateLocationResponse(query: query, locationInfo: locationInfo)
+            return generateLocationResponse(query: query, locationInfo: locationInfo, groundingFacts: groundingFacts)
         }
         
         // Generate contextual responses based on detected intent and sentiment
@@ -113,7 +222,6 @@ class GemmaModelManager: ObservableObject {
     }
     
     private func analyzeSentiment(_ text: String) -> String {
-        let sentiment = NLSentiment.positive // Simplified for now
         // In a real implementation, you'd use NLTagger for sentiment analysis
         return "neutral"
     }
@@ -129,27 +237,43 @@ class GemmaModelManager: ObservableObject {
         return locationKeywords.contains { lowercaseQuery.contains($0) }
     }
     
-    private func generateLocationResponse(query: String, locationInfo: LocationInfo?) -> String {
+    private func generateLocationResponse(query: String, locationInfo: LocationInfo?, groundingFacts: [GeoFact]) -> String {
         guard let locationInfo = locationInfo else {
             return "🧭 I'd love to help you explore your current location, but I need access to your location first. Please enable location services for more personalized travel assistance!"
         }
-        
+
         let lowercaseQuery = query.lowercased()
-        
+
         if lowercaseQuery.contains("what am i looking at") || lowercaseQuery.contains("what's around me") {
-            return generateSurroundingsResponse(locationInfo: locationInfo)
+            return generateSurroundingsResponse(locationInfo: locationInfo, groundingFacts: groundingFacts)
         } else if lowercaseQuery.contains("where am i") || lowercaseQuery.contains("what place is this") {
-            return generateCurrentLocationResponse(locationInfo: locationInfo)
+            return generateCurrentLocationResponse(locationInfo: locationInfo, groundingFacts: groundingFacts)
         } else if lowercaseQuery.contains("nearby") || lowercaseQuery.contains("near me") {
             return generateNearbyPlacesResponse(locationInfo: locationInfo)
         } else {
-            return generateGeneralLocationResponse(locationInfo: locationInfo)
+            return generateGeneralLocationResponse(locationInfo: locationInfo, groundingFacts: groundingFacts)
         }
     }
-    
-    private func generateSurroundingsResponse(locationInfo: LocationInfo) -> String {
+
+    private func factsSection(_ groundingFacts: [GeoFact], limit: Int = 3) -> String {
+        guard !groundingFacts.isEmpty else { return "" }
+        var section = "📚 Nearby history (via Wikipedia):\n"
+        for fact in groundingFacts.prefix(limit) {
+            let safeTitle = Self.markdownSafe(fact.title)
+            let titleMarkdown: String
+            if let urlString = fact.sourceURL {
+                titleMarkdown = "[\(safeTitle)](\(urlString))"
+            } else {
+                titleMarkdown = safeTitle
+            }
+            section += "• **\(titleMarkdown)** — \(Self.markdownSafe(fact.summary))\n\n"
+        }
+        return section
+    }
+
+    private func generateSurroundingsResponse(locationInfo: LocationInfo, groundingFacts: [GeoFact]) -> String {
         var response = "🗺️ Based on your current location:\n\n"
-        
+
         if let cityName = locationInfo.cityName {
             response += "📍 You're in \(cityName)"
             if let country = locationInfo.countryName {
@@ -157,7 +281,9 @@ class GemmaModelManager: ObservableObject {
             }
             response += "\n\n"
         }
-        
+
+        response += factsSection(groundingFacts)
+
         if !locationInfo.nearbyPlaces.isEmpty {
             response += "🎯 What's around you:\n"
             let nearbyNames = locationInfo.nearbyPlaces.prefix(5).compactMap { place in
@@ -169,40 +295,42 @@ class GemmaModelManager: ObservableObject {
                 return nil
             }
             response += nearbyNames.joined(separator: "\n")
-            
+
             if locationInfo.nearbyPlaces.count > 5 {
                 response += "\n• And \(locationInfo.nearbyPlaces.count - 5) more places nearby"
             }
-        } else {
+        } else if groundingFacts.isEmpty {
             response += "🌿 You appear to be in a quiet area with fewer commercial establishments nearby. This might be a residential area, park, or natural setting."
         }
-        
+
         response += "\n\n💡 Try asking about specific things like restaurants, attractions, or activities near you!"
-        
+
         return response
     }
-    
-    private func generateCurrentLocationResponse(locationInfo: LocationInfo) -> String {
+
+    private func generateCurrentLocationResponse(locationInfo: LocationInfo, groundingFacts: [GeoFact]) -> String {
         var response = "📍 Your Current Location:\n\n"
-        
+
         if let fullAddress = locationInfo.fullAddress {
             response += "🏠 Address: \(fullAddress)\n"
         }
-        
+
         response += "🧭 Coordinates: \(locationInfo.formattedCoordinates)\n\n"
-        
+
+        response += factsSection(groundingFacts, limit: 1)
+
         if let cityName = locationInfo.cityName {
             response += "🏙️ You're currently in \(cityName)"
             if let country = locationInfo.countryName, country != cityName {
                 response += ", \(country)"
             }
             response += ".\n\n"
-            
+
             response += "This is a great base for exploring! Ask me about things to do, places to eat, or attractions in \(cityName)."
         } else {
             response += "You're at coordinates \(locationInfo.formattedCoordinates). Ask me about nearby attractions, restaurants, or activities!"
         }
-        
+
         return response
     }
     
@@ -234,9 +362,9 @@ class GemmaModelManager: ObservableObject {
         return response
     }
     
-    private func generateGeneralLocationResponse(locationInfo: LocationInfo) -> String {
+    private func generateGeneralLocationResponse(locationInfo: LocationInfo, groundingFacts: [GeoFact]) -> String {
         var response = "🗺️ Location Information:\n\n"
-        
+
         if let cityName = locationInfo.cityName {
             response += "📍 Current area: \(cityName)"
             if let country = locationInfo.countryName {
@@ -244,11 +372,13 @@ class GemmaModelManager: ObservableObject {
             }
             response += "\n\n"
         }
-        
+
+        response += factsSection(groundingFacts, limit: 1)
+
         if !locationInfo.nearbyPlaces.isEmpty {
             response += "🎯 I can see \(locationInfo.nearbyPlaces.count) places of interest nearby.\n\n"
         }
-        
+
         response += "💬 Ask me things like:\n"
         response += "• 'What restaurants are near me?'\n"
         response += "• 'What attractions can I visit?'\n"
@@ -273,7 +403,7 @@ class GemmaModelManager: ObservableObject {
         case .zoo: return "Zoo"
         case .stadium: return "Stadium"
         case .laundry: return "Laundry"
-        case .movie: return "Movie Theater"
+        case .movieTheater: return "Movie Theater"
         case .nightlife: return "Nightlife"
         case .park: return "Park"
         default: return "Point of Interest"
