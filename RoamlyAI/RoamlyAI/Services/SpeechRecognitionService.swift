@@ -25,6 +25,7 @@ class SpeechRecognitionService: ObservableObject {
     private let silenceThreshold: TimeInterval = 2.0 // 2 seconds of silence
     private var accumulatedText = ""
     private var consecutiveRecognitionFailures = 0
+    private var recognitionGeneration = 0
     private var inputTapInstalled = false
     private let recognitionFailureCap = 3
 
@@ -57,7 +58,8 @@ class SpeechRecognitionService: ObservableObject {
         guard hasPermission else {
             throw SpeechRecognitionError.noPermission
         }
-        
+        consecutiveRecognitionFailures = 0
+
         try startSpeechRecognition()
         
         DispatchQueue.main.async {
@@ -71,7 +73,8 @@ class SpeechRecognitionService: ObservableObject {
         guard hasPermission else {
             throw SpeechRecognitionError.noPermission
         }
-        
+        consecutiveRecognitionFailures = 0
+
         try startSpeechRecognition()
         
         DispatchQueue.main.async {
@@ -90,6 +93,12 @@ class SpeechRecognitionService: ObservableObject {
             throw SpeechRecognitionError.onDeviceUnavailable
         }
 
+        if AVAudioSession.sharedInstance().recordPermission == .denied {
+            throw SpeechRecognitionError.noPermission
+        }
+
+        recognitionGeneration += 1
+        let generation = recognitionGeneration
         recognitionTask?.cancel()
         recognitionTask = nil
         stopAudioEngine()
@@ -119,24 +128,31 @@ class SpeechRecognitionService: ObservableObject {
             try audioEngine.start()
 
             recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-                self?.handleRecognitionResult(result: result, error: error)
+                self?.handleRecognitionResult(result: result, error: error, generation: generation)
             }
             if recognitionTask == nil {
                 throw SpeechRecognitionError.onDeviceUnavailable
             }
+        } catch let error as SpeechRecognitionError {
+            stopAudioEngine()
+            recognitionRequest = nil
+            recognitionTask = nil
+            if case .noPermission = error {
+                throw error
+            }
+            markOnDeviceSpeechUnavailable()
+            throw error
         } catch {
             stopAudioEngine()
             recognitionRequest = nil
             recognitionTask = nil
             markOnDeviceSpeechUnavailable()
-            if error is SpeechRecognitionError {
-                throw error
-            }
             throw SpeechRecognitionError.onDeviceUnavailable
         }
     }
     
-    private func handleRecognitionResult(result: SFSpeechRecognitionResult?, error: Error?) {
+    private func handleRecognitionResult(result: SFSpeechRecognitionResult?, error: Error?, generation: Int) {
+        guard generation == recognitionGeneration else { return }
         var isFinal = false
         
         if let result = result {
@@ -216,12 +232,10 @@ class SpeechRecognitionService: ObservableObject {
     
     private func restartContinuousRecognition() {
         guard isContinuousListening else { return }
-        
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        recognitionRequest = nil
-        
+
         do {
+            // startSpeechRecognition retires the current task before the new
+            // request, so a cancel error from that task is not a recognition failure.
             try startSpeechRecognition()
         } catch {
             print("Failed to restart continuous recognition: \(error)")
@@ -230,6 +244,7 @@ class SpeechRecognitionService: ObservableObject {
     }
 
     private func markOnDeviceSpeechUnavailable() {
+        recognitionGeneration += 1
         isOnDeviceSpeechAvailable = false
         isListening = false
         isContinuousListening = false
@@ -253,6 +268,7 @@ class SpeechRecognitionService: ObservableObject {
     }
     
     func stopListening() {
+        recognitionGeneration += 1
         cleanup()
         
         if !accumulatedText.isEmpty {
