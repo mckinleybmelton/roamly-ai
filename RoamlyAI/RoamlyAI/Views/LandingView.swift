@@ -59,7 +59,7 @@ struct LandingView: View {
                         // Model Status Indicator
                         HStack(spacing: 8) {
                             Circle()
-                                .fill(travelAI.modelManager.isModelLoaded ? Color.green : (travelAI.modelManager.isLoadingModel ? Color.orange : Color.red))
+                                .fill(modelStatusColor)
                                 .frame(width: 8, height: 8)
                             
                             Text(modelStatusText)
@@ -250,22 +250,17 @@ struct LandingView: View {
                     
                     // Instructions
                     VStack(spacing: 8) {
-                        if travelAI.modelManager.isModelLoaded {
-                            Text("🚀 \(modelStatusText) • Tap to start/stop continuous listening")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                        } else {
-                            Text("Tap to start continuous listening")
-                                .font(.caption)
-                                .foregroundColor(.white.opacity(0.7))
-                        }
+                        Text(footerStatusLine)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.7))
                         
                         Text(isListening ? "Tap again to stop listening" : "Keep talking freely - no need to hold button")
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.7))
                         
-                        if let error = travelAI.modelManager.modelError {
-                            Text("Using fallback mode: \(error)")
+                        if travelAI.modelManager.enginePhase == .unavailable,
+                           let error = travelAI.modelManager.modelError {
+                            Text(error)
                                 .font(.caption2)
                                 .foregroundColor(.orange.opacity(0.8))
                                 .multilineTextAlignment(.center)
@@ -300,20 +295,42 @@ struct LandingView: View {
         .navigationViewStyle(.stack)
     }
     
+    private var modelStatusColor: Color {
+        switch travelAI.modelManager.enginePhase {
+        case .loading:
+            return .orange
+        case .unavailable:
+            return .red
+        case .onDeviceReady:
+            return .green
+        case .templateReady:
+            return .yellow
+        }
+    }
+
     private var modelStatusText: String {
-        if travelAI.modelManager.isModelLoaded {
-            switch travelAI.modelManager.generationMode {
-            case .foundationModel:
-                return "On-Device AI Ready"
-            case .templateFallback:
-                return "Offline AI Ready"
-            }
-        } else if travelAI.modelManager.isLoadingModel {
+        switch travelAI.modelManager.enginePhase {
+        case .loading:
             return "Loading AI Model..."
-        } else if let error = travelAI.modelManager.modelError {
-            return "Fallback Mode"
-        } else {
-            return "Initializing..."
+        case .unavailable:
+            return "AI Unavailable"
+        case .onDeviceReady:
+            return "On-Device AI Ready"
+        case .templateReady:
+            return "Basic Replies Ready"
+        }
+    }
+
+    private var footerStatusLine: String {
+        switch travelAI.modelManager.enginePhase {
+        case .onDeviceReady:
+            return "🚀 On-Device AI Ready • Tap to start/stop continuous listening"
+        case .templateReady:
+            return "Basic Replies Ready • Tap to start/stop continuous listening"
+        case .loading:
+            return "Loading AI Model..."
+        case .unavailable:
+            return "AI Unavailable"
         }
     }
     
