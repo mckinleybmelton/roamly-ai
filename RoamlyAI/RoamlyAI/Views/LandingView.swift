@@ -21,9 +21,6 @@ struct LandingView: View {
     @State private var isListening = false // Changed from isRecording to isListening
     @State private var sessionDuration: TimeInterval = 0
     @State private var timer: Timer?
-    @State private var currentTranscription = ""
-    @State private var lastResponse = ""
-    @State private var showResponse = false
     @State private var conversationHistory: [ConversationItem] = []
     @State private var isProcessingQuery = false
     @State private var isInterrupted = false
@@ -84,43 +81,52 @@ struct LandingView: View {
                     
                     Spacer()
                     
-                    // Response Display
-                    if showResponse && !lastResponse.isEmpty {
-                        ScrollView {
-                            VStack(spacing: 15) {
-                                if !currentTranscription.isEmpty {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        Text("You asked:")
-                                            .font(.caption)
-                                            .foregroundColor(.white.opacity(0.7))
-                                        
-                                        Text(currentTranscription)
-                                            .font(.body)
-                                            .foregroundColor(.white)
-                                            .padding()
-                                            .background(Color.white.opacity(0.1))
-                                            .cornerRadius(12)
+                    if !conversationHistory.isEmpty {
+                        ScrollViewReader { proxy in
+                            ScrollView {
+                                VStack(spacing: 15) {
+                                    ForEach(conversationHistory) { item in
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            Text("You asked:")
+                                                .font(.caption)
+                                                .foregroundColor(.white.opacity(0.7))
+
+                                            Text(item.userQuery)
+                                                .font(.body)
+                                                .foregroundColor(.white)
+                                                .padding()
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color.white.opacity(0.1))
+                                                .cornerRadius(12)
+
+                                            Text("Roamly AI:")
+                                                .font(.caption)
+                                                .foregroundColor(.white.opacity(0.7))
+
+                                            Text(LocalizedStringKey(item.aiResponse))
+                                                .font(.body)
+                                                .foregroundColor(.white)
+                                                .tint(.white)
+                                                .padding()
+                                                .frame(maxWidth: .infinity, alignment: .leading)
+                                                .background(Color.blue.opacity(0.3))
+                                                .cornerRadius(12)
+                                        }
+                                        .id(item.id)
                                     }
                                 }
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    Text("Roamly AI:")
-                                        .font(.caption)
-                                        .foregroundColor(.white.opacity(0.7))
-                                    
-                                    Text(LocalizedStringKey(lastResponse))
-                                        .font(.body)
-                                        .foregroundColor(.white)
-                                        .tint(.white)
-                                        .padding()
-                                        .background(Color.blue.opacity(0.3))
-                                        .cornerRadius(12)
+                            }
+                            .frame(maxHeight: 200)
+                            .padding(.horizontal)
+                            .padding(.bottom, 20)
+                            .onChange(of: conversationHistory.count) { _ in
+                                if let last = conversationHistory.last {
+                                    withAnimation {
+                                        proxy.scrollTo(last.id, anchor: .bottom)
+                                    }
                                 }
                             }
                         }
-                        .frame(maxHeight: 200)
-                        .padding(.horizontal)
-                        .padding(.bottom, 20)
                     }
                     
                     // Processing Status
@@ -401,9 +407,7 @@ struct LandingView: View {
         
         isListening = true
         sessionDuration = 0
-        showResponse = false
         speechRecognition.recognizedText = ""
-        conversationHistory.removeAll()
         
         // Wire up speech recognition callbacks
         speechRecognition.onComplete = { text in
@@ -503,7 +507,6 @@ struct LandingView: View {
         guard !isProcessingQuery else { return }
 
         let query = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        currentTranscription = query
         
         Task {
             await MainActor.run {
@@ -519,8 +522,6 @@ struct LandingView: View {
                         aiResponse: response
                     )
                     conversationHistory.append(conversationItem)
-                    lastResponse = response
-                    showResponse = true
                     isProcessingQuery = false
                     
                     // Clear the recognized text for next query
@@ -534,8 +535,6 @@ struct LandingView: View {
                         aiResponse: "Sorry, I couldn't process your request right now. Please try again."
                     )
                     conversationHistory.append(conversationItem)
-                    lastResponse = conversationItem.aiResponse
-                    showResponse = true
                     isProcessingQuery = false
                     speechRecognition.recognizedText = ""
                 }
