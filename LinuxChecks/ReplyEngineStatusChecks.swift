@@ -12,6 +12,15 @@ private func expect(_ condition: Bool, _ message: String) {
     }
 }
 
+@main
+struct ReplyEngineStatusCheckMain {
+    static func main() {
+        run()
+        print("ok")
+    }
+}
+
+private func run() {
 let loadingWhileBusy = ReplyEngineStatus.resolve(
     isLoading: true,
     loadFinished: true,
@@ -80,5 +89,4 @@ expect(
     ReplyEngineStatus.unavailableMessage == "Couldn't produce a reply",
     "unavailable message"
 )
-
-print("ok")
+}
