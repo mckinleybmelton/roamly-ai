@@ -15,7 +15,6 @@ struct ConversationItem: Identifiable {
 }
 
 struct LandingView: View {
-    @StateObject private var audioRecorder = AudioRecorderViewModel()
     @StateObject private var speechRecognition = SpeechRecognitionService()
     @StateObject private var travelAI = TravelAIService()
     @State private var showingDestinationSetup = false
@@ -278,7 +277,6 @@ struct LandingView: View {
             }
         }
         .onAppear {
-            audioRecorder.requestPermission()
             speechRecognition.requestPermission()
             travelAI.locationManager.requestLocationPermission()
         }
@@ -370,9 +368,6 @@ struct LandingView: View {
             sessionDuration += 0.1
         }
         
-        // Start continuous audio recording
-        audioRecorder.startContinuousRecording()
-        
         // Start continuous speech recognition
         do {
             try speechRecognition.startContinuousListening()
@@ -392,8 +387,7 @@ struct LandingView: View {
         timer?.invalidate()
         timer = nil
         
-        // Stop continuous recording and speech recognition
-        audioRecorder.stopContinuousRecording()
+        // Stop continuous speech recognition
         speechRecognition.stopContinuousListening()
         
         // Process any final transcription

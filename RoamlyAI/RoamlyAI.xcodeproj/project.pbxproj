@@ -9,8 +9,6 @@
 /* Begin PBXBuildFile section */
 		4D7A936843D3AB3DA7F8B620 /* RoamlyAIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608A19119B795A8B92C2166B /* RoamlyAIApp.swift */; };
 		BB7020A4E9ADFA9231E63BA3 /* LandingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B49A044E546F9B5BB14563D /* LandingView.swift */; };
-		40868F62B5CAD054B47071B8 /* AudioRecorderViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35C11E3ECE94803D9AED3323 /* AudioRecorderViewModel.swift */; };
-		9CDBADE3C8BB68A1E213ACDB /* AudioMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 825F3DE460AA6ADE8C187063 /* AudioMessage.swift */; };
 		512BE135EACF7BC4E9A2D407 /* SpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259131EB58FA7D8F650E4050 /* SpeechRecognitionService.swift */; };
 		5F11F8015EDE7FED6D470A1F /* TravelAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F46E136B063DA8A7A2599F8 /* TravelAIService.swift */; };
 		C5024FB1D43A47C61C851057 /* GemmaModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CE3CCF022E87416FFBEAC94 /* GemmaModelManager.swift */; };
@@ -27,8 +25,6 @@
 		4464B4246BA12A0A1EF48F30 /* RoamlyAI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RoamlyAI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		608A19119B795A8B92C2166B /* RoamlyAIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoamlyAIApp.swift; sourceTree = "<group>"; };
 		5B49A044E546F9B5BB14563D /* LandingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandingView.swift; sourceTree = "<group>"; };
-		35C11E3ECE94803D9AED3323 /* AudioRecorderViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioRecorderViewModel.swift; sourceTree = "<group>"; };
-		825F3DE460AA6ADE8C187063 /* AudioMessage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioMessage.swift; sourceTree = "<group>"; };
 		259131EB58FA7D8F650E4050 /* SpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognitionService.swift; sourceTree = "<group>"; };
 		6F46E136B063DA8A7A2599F8 /* TravelAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelAIService.swift; sourceTree = "<group>"; };
 		2CE3CCF022E87416FFBEAC94 /* GemmaModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemmaModelManager.swift; sourceTree = "<group>"; };
@@ -74,7 +70,6 @@
 			children = (
 				608A19119B795A8B92C2166B /* RoamlyAIApp.swift */,
 				DC31DF8C439DA68214407288 /* Views */,
-				B72FDA4E2782960DF61560DE /* ViewModels */,
 				BC960D1858AB9A8834C652B4 /* Models */,
 				C1423E0E1B89E78E8CDF7188 /* Services */,
 				7CBAE8952D3CC3FF597E1872 /* Assets.xcassets */,
@@ -92,18 +87,9 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
-		B72FDA4E2782960DF61560DE /* ViewModels */ = {
-			isa = PBXGroup;
-			children = (
-				35C11E3ECE94803D9AED3323 /* AudioRecorderViewModel.swift */,
-			);
-			path = ViewModels;
-			sourceTree = "<group>";
-		};
 		BC960D1858AB9A8834C652B4 /* Models */ = {
 			isa = PBXGroup;
 			children = (
-				825F3DE460AA6ADE8C187063 /* AudioMessage.swift */,
 				EAC5C6BFE5FFEBA23FC16090 /* GeoFact.swift */,
 			);
 			path = Models;
@@ -194,8 +180,6 @@
 			files = (
 				BB7020A4E9ADFA9231E63BA3 /* LandingView.swift in Sources */,
 				4D7A936843D3AB3DA7F8B620 /* RoamlyAIApp.swift in Sources */,
-				40868F62B5CAD054B47071B8 /* AudioRecorderViewModel.swift in Sources */,
-				9CDBADE3C8BB68A1E213ACDB /* AudioMessage.swift in Sources */,
 				512BE135EACF7BC4E9A2D407 /* SpeechRecognitionService.swift in Sources */,
 				5F11F8015EDE7FED6D470A1F /* TravelAIService.swift in Sources */,
 				C5024FB1D43A47C61C851057 /* GemmaModelManager.swift in Sources */,
