@@ -44,26 +44,27 @@ Denying microphone or speech permission keeps the previous landing behavior. It 
 ## Project layout
 
 ```
-RoamlyAI/
-├── RoamlyAI.xcodeproj
-├── RoamlyAI/
-│   ├── RoamlyAIApp.swift
-│   ├── Views/
-│   │   ├── LandingView.swift
-│   │   └── DestinationSetupView.swift
-│   ├── Models/
-│   │   └── GeoFact.swift
-│   └── Services/
-│       ├── SpeechRecognitionService.swift
-│       ├── TravelAIService.swift
-│       ├── GemmaModelManager.swift
-│       ├── ReplyEngineStatus.swift
-│       ├── FoundationModelBridge.swift
-│       ├── LocationService.swift
-│       ├── WikipediaFactsService.swift
-│       └── GeoFactsStore.swift
-└── LinuxChecks/
-    └── ReplyEngineStatusChecks.swift
+.
+├── LinuxChecks/
+│   └── ReplyEngineStatusChecks.swift
+└── RoamlyAI/
+    ├── RoamlyAI.xcodeproj
+    └── RoamlyAI/
+        ├── RoamlyAIApp.swift
+        ├── Views/
+        │   ├── LandingView.swift
+        │   └── DestinationSetupView.swift
+        ├── Models/
+        │   └── GeoFact.swift
+        └── Services/
+            ├── SpeechRecognitionService.swift
+            ├── TravelAIService.swift
+            ├── GemmaModelManager.swift
+            ├── ReplyEngineStatus.swift
+            ├── FoundationModelBridge.swift
+            ├── LocationService.swift
+            ├── WikipediaFactsService.swift
+            └── GeoFactsStore.swift
 ```
 
 `LinuxChecks/ReplyEngineStatusChecks.swift` is not part of the Xcode target. On a machine with Swift it checks the status decision:
