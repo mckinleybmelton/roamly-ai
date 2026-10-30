@@ -204,6 +204,20 @@ struct LandingView: View {
                             }
                         }
                         .padding(.bottom, 40)
+                    } else if !speechRecognition.isOnDeviceSpeechAvailable {
+                        VStack(spacing: 20) {
+                            Text("On-device speech isn’t available")
+                                .font(.title2)
+                                .fontWeight(.medium)
+                                .foregroundColor(.white)
+                                .multilineTextAlignment(.center)
+
+                            Text("Roamly won’t send your voice to Apple’s servers.")
+                                .font(.body)
+                                .foregroundColor(.white.opacity(0.8))
+                                .multilineTextAlignment(.center)
+                        }
+                        .padding(.bottom, 40)
                     } else {
                         VStack(spacing: 20) {
                             Text("Tap to start continuous listening")
@@ -223,7 +237,7 @@ struct LandingView: View {
                     Button(action: {
                         if isListening {
                             stopListening()
-                        } else {
+                        } else if speechRecognition.isOnDeviceSpeechAvailable {
                             startListening()
                         }
                     }) {
@@ -250,13 +264,14 @@ struct LandingView: View {
                     
                     // Instructions
                     VStack(spacing: 8) {
-                        Text(footerStatusLine)
+                        Text(speechRecognition.isOnDeviceSpeechAvailable ? footerStatusLine : modelStatusText)
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.7))
                         
-                        Text(isListening ? "Tap again to stop listening" : "Keep talking freely - no need to hold button")
+                        Text(speechFooterSecondLine)
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.7))
+                            .multilineTextAlignment(.center)
                         
                         if travelAI.modelManager.enginePhase == .unavailable,
                            let error = travelAI.modelManager.modelError {
@@ -274,6 +289,13 @@ struct LandingView: View {
         .onAppear {
             speechRecognition.requestPermission()
             travelAI.locationManager.requestLocationPermission()
+        }
+        .onChange(of: speechRecognition.isOnDeviceSpeechAvailable) { available in
+            if !available, isListening {
+                isListening = false
+                timer?.invalidate()
+                timer = nil
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: AVAudioSession.interruptionNotification)) { notification in
             handleAudioSessionInterruption(notification)
@@ -319,6 +341,13 @@ struct LandingView: View {
         case .templateReady:
             return "Basic Replies Ready"
         }
+    }
+
+    private var speechFooterSecondLine: String {
+        if !speechRecognition.isOnDeviceSpeechAvailable {
+            return "Listening stays off until on-device speech is available."
+        }
+        return isListening ? "Tap again to stop listening" : "Keep talking freely - no need to hold button"
     }
 
     private var footerStatusLine: String {
@@ -367,6 +396,7 @@ struct LandingView: View {
     }
     
     private func startListening() {
+        guard speechRecognition.isOnDeviceSpeechAvailable else { return }
         guard !isListening else { return }
         
         isListening = true
@@ -388,6 +418,10 @@ struct LandingView: View {
         // Start continuous speech recognition
         do {
             try speechRecognition.startContinuousListening()
+        } catch SpeechRecognitionError.onDeviceUnavailable {
+            isListening = false
+            timer?.invalidate()
+            timer = nil
         } catch {
             print("Failed to start speech recognition: \(error)")
         }

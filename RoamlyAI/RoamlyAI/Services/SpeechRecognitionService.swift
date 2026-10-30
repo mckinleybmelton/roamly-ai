@@ -7,6 +7,7 @@ class SpeechRecognitionService: ObservableObject {
     @Published var recognizedText = ""
     @Published var hasPermission = false
     @Published var isContinuousListening = false
+    @Published private(set) var isOnDeviceSpeechAvailable: Bool
 
     var onReceiveText: ((String) -> Void)?
     var onComplete: ((String) -> Void)?
@@ -23,8 +24,12 @@ class SpeechRecognitionService: ObservableObject {
     private var lastSpeechTime: Date?
     private let silenceThreshold: TimeInterval = 2.0 // 2 seconds of silence
     private var accumulatedText = ""
-    
+    private var consecutiveRecognitionFailures = 0
+    private var inputTapInstalled = false
+    private let recognitionFailureCap = 3
+
     init() {
+        isOnDeviceSpeechAvailable = speechRecognizer?.supportsOnDeviceRecognition == true
         requestPermission()
     }
     
@@ -78,38 +83,56 @@ class SpeechRecognitionService: ObservableObject {
     }
     
     private func startSpeechRecognition() throws {
-        // Cancel any previous task
+        guard isOnDeviceSpeechAvailable,
+              let speechRecognizer,
+              speechRecognizer.supportsOnDeviceRecognition else {
+            markOnDeviceSpeechUnavailable()
+            throw SpeechRecognitionError.onDeviceUnavailable
+        }
+
         recognitionTask?.cancel()
         recognitionTask = nil
-        
-        // Configure audio session for background operation
-        let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.record, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
-        try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
-        
-        // Create recognition request
-        recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
-        guard let recognitionRequest = recognitionRequest else {
-            throw SpeechRecognitionError.failedToCreateRequest
-        }
-        
-        recognitionRequest.shouldReportPartialResults = true
-        
-        // Configure audio input
-        let inputNode = audioEngine.inputNode
-        let recordingFormat = inputNode.outputFormat(forBus: 0)
-        
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
-            self?.recognitionRequest?.append(buffer)
-        }
-        
-        // Start audio engine
-        audioEngine.prepare()
-        try audioEngine.start()
-        
-        // Start recognition task
-        recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            self?.handleRecognitionResult(result: result, error: error)
+        stopAudioEngine()
+
+        do {
+            // Configure audio session for background operation. This epic does not
+            // enable a background mode; listening stays in the foreground.
+            let audioSession = AVAudioSession.sharedInstance()
+            try audioSession.setCategory(.record, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
+            try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+
+            recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
+            guard let recognitionRequest else {
+                throw SpeechRecognitionError.failedToCreateRequest
+            }
+            recognitionRequest.shouldReportPartialResults = true
+            recognitionRequest.requiresOnDeviceRecognition = true
+
+            let inputNode = audioEngine.inputNode
+            let recordingFormat = inputNode.outputFormat(forBus: 0)
+            inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { [weak self] buffer, _ in
+                self?.recognitionRequest?.append(buffer)
+            }
+            inputTapInstalled = true
+
+            audioEngine.prepare()
+            try audioEngine.start()
+
+            recognitionTask = speechRecognizer.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+                self?.handleRecognitionResult(result: result, error: error)
+            }
+            if recognitionTask == nil {
+                throw SpeechRecognitionError.onDeviceUnavailable
+            }
+        } catch {
+            stopAudioEngine()
+            recognitionRequest = nil
+            recognitionTask = nil
+            markOnDeviceSpeechUnavailable()
+            if error is SpeechRecognitionError {
+                throw error
+            }
+            throw SpeechRecognitionError.onDeviceUnavailable
         }
     }
     
@@ -117,6 +140,7 @@ class SpeechRecognitionService: ObservableObject {
         var isFinal = false
         
         if let result = result {
+            consecutiveRecognitionFailures = 0
             let newText = result.bestTranscription.formattedString
             
             DispatchQueue.main.async {
@@ -140,6 +164,22 @@ class SpeechRecognitionService: ObservableObject {
             
             isFinal = result.isFinal
         }
+
+        if result == nil, error != nil {
+            consecutiveRecognitionFailures += 1
+            if consecutiveRecognitionFailures >= recognitionFailureCap {
+                DispatchQueue.main.async {
+                    self.markOnDeviceSpeechUnavailable()
+                }
+                return
+            }
+            if isContinuousListening {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.restartContinuousRecognition()
+                }
+            }
+            return
+        }
         
         if error != nil || isFinal {
             if !isContinuousListening {
@@ -150,7 +190,8 @@ class SpeechRecognitionService: ObservableObject {
                     onComplete?(finalText)
                 }
             } else if isFinal {
-                // In continuous mode, restart recognition after a brief pause
+                // In continuous mode, restart recognition after a brief pause.
+                // A final result is not a failure and does not count toward the cap.
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                     self.restartContinuousRecognition()
                 }
@@ -184,7 +225,30 @@ class SpeechRecognitionService: ObservableObject {
             try startSpeechRecognition()
         } catch {
             print("Failed to restart continuous recognition: \(error)")
-            stopContinuousListening()
+            markOnDeviceSpeechUnavailable()
+        }
+    }
+
+    private func markOnDeviceSpeechUnavailable() {
+        isOnDeviceSpeechAvailable = false
+        isListening = false
+        isContinuousListening = false
+        stopAudioEngine()
+        recognitionRequest?.endAudio()
+        recognitionRequest = nil
+        recognitionTask?.cancel()
+        recognitionTask = nil
+        silenceTimer?.invalidate()
+        silenceTimer = nil
+    }
+
+    private func stopAudioEngine() {
+        if audioEngine.isRunning {
+            audioEngine.stop()
+        }
+        if inputTapInstalled {
+            audioEngine.inputNode.removeTap(onBus: 0)
+            inputTapInstalled = false
         }
     }
     
@@ -211,8 +275,7 @@ class SpeechRecognitionService: ObservableObject {
         silenceTimer?.invalidate()
         silenceTimer = nil
         
-        audioEngine.stop()
-        audioEngine.inputNode.removeTap(onBus: 0)
+        stopAudioEngine()
         
         recognitionRequest?.endAudio()
         recognitionRequest = nil
@@ -231,13 +294,16 @@ class SpeechRecognitionService: ObservableObject {
 enum SpeechRecognitionError: Error {
     case noPermission
     case failedToCreateRequest
-    
+    case onDeviceUnavailable
+
     var localizedDescription: String {
         switch self {
         case .noPermission:
             return "Speech recognition permission not granted"
         case .failedToCreateRequest:
             return "Failed to create recognition request"
+        case .onDeviceUnavailable:
+            return "On-device speech isn't available"
         }
     }
 }
