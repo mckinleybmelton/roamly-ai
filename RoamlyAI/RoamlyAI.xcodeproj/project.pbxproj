@@ -12,6 +12,7 @@
 		512BE135EACF7BC4E9A2D407 /* SpeechRecognitionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 259131EB58FA7D8F650E4050 /* SpeechRecognitionService.swift */; };
 		5F11F8015EDE7FED6D470A1F /* TravelAIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F46E136B063DA8A7A2599F8 /* TravelAIService.swift */; };
 		C5024FB1D43A47C61C851057 /* GemmaModelManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CE3CCF022E87416FFBEAC94 /* GemmaModelManager.swift */; };
+		3C8F1A60E2B74D95A0C6E8F1 /* ReplyEngineStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7E4A91C0D6F4823A5C8E1D2 /* ReplyEngineStatus.swift */; };
 		10A9D0D555FFE56151339B9D /* LocationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD54AF5D3BF1528361B87BF4 /* LocationService.swift */; };
 		10A898D61F5DAB68CC665F3D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 7CBAE8952D3CC3FF597E1872 /* Assets.xcassets */; };
 		C70122EE8467D397BE60ECBB /* GeoFact.swift in Sources */ = {isa = PBXBuildFile; fileRef = EAC5C6BFE5FFEBA23FC16090 /* GeoFact.swift */; };
@@ -28,6 +29,7 @@
 		259131EB58FA7D8F650E4050 /* SpeechRecognitionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognitionService.swift; sourceTree = "<group>"; };
 		6F46E136B063DA8A7A2599F8 /* TravelAIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TravelAIService.swift; sourceTree = "<group>"; };
 		2CE3CCF022E87416FFBEAC94 /* GemmaModelManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemmaModelManager.swift; sourceTree = "<group>"; };
+		B7E4A91C0D6F4823A5C8E1D2 /* ReplyEngineStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyEngineStatus.swift; sourceTree = "<group>"; };
 		BD54AF5D3BF1528361B87BF4 /* LocationService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationService.swift; sourceTree = "<group>"; };
 		7CBAE8952D3CC3FF597E1872 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		EDC6909893AAF90A6D27D0CE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -101,6 +103,7 @@
 				259131EB58FA7D8F650E4050 /* SpeechRecognitionService.swift */,
 				6F46E136B063DA8A7A2599F8 /* TravelAIService.swift */,
 				2CE3CCF022E87416FFBEAC94 /* GemmaModelManager.swift */,
+				B7E4A91C0D6F4823A5C8E1D2 /* ReplyEngineStatus.swift */,
 				BD54AF5D3BF1528361B87BF4 /* LocationService.swift */,
 				C8D669B85C57A135BA56BEE7 /* WikipediaFactsService.swift */,
 				30B5AC43AC3241B7E91D7194 /* GeoFactsStore.swift */,
@@ -183,6 +186,7 @@
 				512BE135EACF7BC4E9A2D407 /* SpeechRecognitionService.swift in Sources */,
 				5F11F8015EDE7FED6D470A1F /* TravelAIService.swift in Sources */,
 				C5024FB1D43A47C61C851057 /* GemmaModelManager.swift in Sources */,
+				3C8F1A60E2B74D95A0C6E8F1 /* ReplyEngineStatus.swift in Sources */,
 				10A9D0D555FFE56151339B9D /* LocationService.swift in Sources */,
 				C70122EE8467D397BE60ECBB /* GeoFact.swift in Sources */,
 				7F46AA2B406C9F200B2ADFFC /* WikipediaFactsService.swift in Sources */,

@@ -15,8 +15,11 @@ class GemmaModelManager: ObservableObject {
     @Published var loadingProgress: Float = 0.0
     @Published var modelError: String?
     @Published private(set) var generationMode: GenerationMode = .templateFallback
+    @Published private(set) var enginePhase: ReplyEnginePhase = .loading
 
     private var sentimentClassifier: NLModel?
+    private var loadFinished = false
+    private var latestAttempt: ReplyPathOutcome?
     private var languageRecognizer = NLLanguageRecognizer()
     private var llmBridge: GroundedLLMBridge?
 
@@ -27,39 +30,51 @@ class GemmaModelManager: ObservableObject {
     }
 
     func loadLocalModel() async {
-        await MainActor.run {
-            isLoadingModel = true
-            loadingProgress = 0.0
-            modelError = nil
-        }
+        isLoadingModel = true
+        loadingProgress = 0.0
+        modelError = nil
+        loadFinished = false
+        latestAttempt = nil
+        refreshEnginePhase()
 
-        if #available(iOS 26.0, *), FoundationModelBridge.isAvailable {
-            llmBridge = FoundationModelBridge()
-        }
+        ensureFoundationBridge()
 
         do {
-            // Load Apple's built-in sentiment classifier as a lightweight alternative
-            // This provides basic NLP capabilities offline
+            // Load Apple's built-in sentiment classifier as a lightweight alternative.
+            // A missing file is template-ready, not a loaded model and not AI Unavailable.
             guard let modelURL = Bundle.main.url(forResource: "SentimentClassifier", withExtension: "mlmodelc") else {
                 throw ModelError.generationFailed("SentimentClassifier.mlmodelc not found in bundle")
             }
             sentimentClassifier = try NLModel(mlModel: try MLModel(contentsOf: modelURL))
-
-            await MainActor.run {
-                isModelLoaded = true
-                isLoadingModel = false
-                loadingProgress = 1.0
-            }
-
+            isModelLoaded = true
+            loadingProgress = 1.0
         } catch {
-            // Fallback: Use Apple's built-in NLP tools
-            await MainActor.run {
-                isModelLoaded = true // Mark as loaded for fallback mode
-                isLoadingModel = false
-                loadingProgress = 1.0
-                print("Using fallback NLP mode")
+            sentimentClassifier = nil
+            isModelLoaded = false
+            loadingProgress = 1.0
+            modelError = nil
+        }
+
+        isLoadingModel = false
+        loadFinished = true
+        refreshEnginePhase()
+    }
+
+    private func ensureFoundationBridge() {
+        if llmBridge == nil, Self.isFoundationModelCurrentlyAvailable() {
+            if #available(iOS 26.0, *) {
+                llmBridge = FoundationModelBridge()
             }
         }
+    }
+
+    private func refreshEnginePhase() {
+        enginePhase = ReplyEngineStatus.resolve(
+            isLoading: isLoadingModel,
+            loadFinished: loadFinished,
+            foundationModelsAvailable: Self.isFoundationModelCurrentlyAvailable(),
+            attempt: latestAttempt
+        )
     }
 
     /// Whether the real on-device LLM is usable right now — checked fresh rather than cached,
@@ -73,28 +88,70 @@ class GemmaModelManager: ObservableObject {
     }
 
     func generateResponse(for prompt: String, locationInfo: LocationInfo? = nil, groundingFacts: [GeoFact] = []) async throws -> String {
-        guard isModelLoaded else {
-            throw ModelError.modelNotLoaded
-        }
+        ensureFoundationBridge()
 
+        var foundationProducedReply = false
         if let bridge = llmBridge, Self.isFoundationModelCurrentlyAvailable() {
             generationMode = .foundationModel
             do {
                 let instructions = Self.groundedInstructions(locationInfo: locationInfo, groundingFacts: groundingFacts)
                 let response = try await bridge.respond(system: instructions, prompt: prompt)
-                return Self.appendCitations(to: response, facts: groundingFacts)
+                if !response.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    foundationProducedReply = true
+                    return try finishReply(
+                        foundationProducedReply: true,
+                        templateProducedReply: false,
+                        text: Self.appendCitations(to: response, facts: groundingFacts)
+                    )
+                }
+            } catch is CancellationError {
+                throw CancellationError()
             } catch {
                 print("Foundation Models generation failed, falling back to templates: \(error)")
-                // Fall through to the template path below.
             }
         }
 
         generationMode = .templateFallback
 
-        // Simulate processing delay for realistic feel
-        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        // Simulate processing delay for realistic feel. Cancellation is not a reply failure.
+        do {
+            try await Task.sleep(nanoseconds: 1_000_000_000)
+        } catch is CancellationError {
+            throw CancellationError()
+        }
 
-        return generateIntelligentResponse(for: prompt, locationInfo: locationInfo, groundingFacts: groundingFacts)
+        let template = generateIntelligentResponse(for: prompt, locationInfo: locationInfo, groundingFacts: groundingFacts)
+        if !template.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return try finishReply(
+                foundationProducedReply: foundationProducedReply,
+                templateProducedReply: true,
+                text: template
+            )
+        }
+
+        return try finishReply(
+            foundationProducedReply: foundationProducedReply,
+            templateProducedReply: false,
+            text: nil
+        )
+    }
+
+    private func finishReply(
+        foundationProducedReply: Bool,
+        templateProducedReply: Bool,
+        text: String?
+    ) throws -> String {
+        latestAttempt = CompletedReplyAttempt(
+            foundationProducedReply: foundationProducedReply,
+            templateProducedReply: templateProducedReply
+        )
+        refreshEnginePhase()
+        if enginePhase == .unavailable {
+            modelError = ReplyEngineStatus.unavailableMessage
+            throw ModelError.generationFailed(ReplyEngineStatus.unavailableMessage)
+        }
+        modelError = nil
+        return text ?? ""
     }
 
     /// System instructions for the real on-device LLM. Explicitly forbids answering beyond the

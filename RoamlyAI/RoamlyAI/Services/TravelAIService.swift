@@ -31,11 +31,6 @@ class TravelAIService: ObservableObject {
         geoFactsStore.objectWillChange
             .sink { [weak self] _ in self?.objectWillChange.send() }
             .store(in: &cancellables)
-
-        // Initialize Gemma model on startup
-        Task {
-            await gemmaManager.loadLocalModel()
-        }
     }
     
     func processQuery(_ query: String) async throws -> String {
@@ -48,22 +43,19 @@ class TravelAIService: ObservableObject {
                 self.isProcessing = false
             }
         }
-        
-        // Try offline processing first
-        if gemmaManager.isModelLoaded {
-            do {
-                // Get current location info if needed
-                let locationInfo = await locationService.getCurrentLocationInfo()
-                let groundingFacts = locationInfo.map { geoFactsStore.facts(near: $0.coordinate) } ?? []
-                let response = try await gemmaManager.generateResponse(for: query, locationInfo: locationInfo, groundingFacts: groundingFacts)
-                return response
-            } catch {
-                print("Offline processing failed: \(error)")
-                // Fall back to mock response if model fails
-                return generateFallbackResponse(for: query)
-            }
-        } else {
-            // Model not loaded, use fallback
+
+        do {
+            let locationInfo = await locationService.getCurrentLocationInfo()
+            let groundingFacts = locationInfo.map { geoFactsStore.facts(near: $0.coordinate) } ?? []
+            return try await gemmaManager.generateResponse(
+                for: query,
+                locationInfo: locationInfo,
+                groundingFacts: groundingFacts
+            )
+        } catch let ModelError.generationFailed(message) where message == ReplyEngineStatus.unavailableMessage {
+            throw ModelError.generationFailed(message)
+        } catch {
+            print("Reply failed, using fallback copy: \(error)")
             return generateFallbackResponse(for: query)
         }
     }
