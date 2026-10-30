@@ -29,6 +29,11 @@ class SpeechRecognitionService: ObservableObject {
     }
     
     func requestPermission() {
+        AVAudioSession.sharedInstance().requestRecordPermission { _ in
+            // The mic prompt stays with speech permission. Denial still follows the
+            // existing speech path: startListening throws noPermission and the
+            // landing copy does not switch to the on-device-unavailable message.
+        }
         SFSpeechRecognizer.requestAuthorization { [weak self] authStatus in
             DispatchQueue.main.async {
                 switch authStatus {
